@@ -1,0 +1,7 @@
+[package]
+name = "chocoSocks"
+version = "0.1.0"
+authors = ["Eva"]
+edition = "2018"
+
+[dependencies]
