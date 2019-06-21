@@ -118,11 +118,19 @@ std::string create_modified_dll(const std::string& str_dll_path, std::string ip,
 
 	std::vector<uint8_t> replace_signature_ip(str_home_ip_signature.begin(), str_home_ip_signature.end());
 	std::vector<uint8_t> replace_signature_port(str_home_port_signature.begin(), str_home_port_signature.end());
-	std::vector<uint8_t> replace_signature_function(str_function_signature.begin(), str_function_signature.end());
+	std::vector<uint8_t> replace_signature_function = {};
+
+	if(function != "connect")
+		replace_signature_function = std::vector<uint8_t>(str_function_signature.begin(), str_function_signature.end());
 
 	auto config_one = replace_all(dll_file, replace_signature_ip, replace_ip);
 	auto config_two = replace_all(config_one, replace_signature_port, replace_port);
-	auto config_three = replace_all(config_two, replace_signature_function, replace_function);
+	std::vector<uint8_t> config_three = {};
+
+	if (function != "connect")
+		config_three = replace_all(config_two, replace_signature_function, replace_function);
+	else
+		config_three = config_two;
 
 	std::string filename = get_temp_dll_file();
 
