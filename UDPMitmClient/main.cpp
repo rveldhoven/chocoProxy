@@ -19,7 +19,7 @@ std::map<SOCKET, SOCKET> home_sockets;
 
 const char* home_ip = "A1B2C3D4E5F6G7H8123123123123";
 const char* home_port = "Z1Y2X3GHJKLMNOP";
-const char* hook_function = "zscfbhnzscfbhnzscfbhnzscfbhnzscfbhnzscfbhnzscfbhnzscfbhnzscfbhnzscfbhnzscfbhn";
+char* hook_function = (char*)"zscfbhnzscfbhnzscfbhnzscfbhnzscfbhnzscfbhnzscfbhnzscfbhnzscfbhnzscfbhnzscfbhn";
 
 #ifdef _WIN64
 std::shared_ptr<cHookManager>		hook_manager = nullptr;
@@ -293,13 +293,13 @@ void real_main()
 
 		char* hooked_function = (char*)((char*)hook_function);
 		
-		if (memcmp(hooked_function, "sendto", strlen("sendto")) == 0)
+		if (strcmp(hooked_function, "sendto") == 0)
 		{
 			set_hook("ws2_32.dll", "sendto", (void*)sendto_hook);
 
 			MessageBoxA(NULL, "sendto hook set", "hook", MB_OK);
 		}
-		else if (memcmp(hooked_function, "send", strlen("send")) == 0)
+		else if (strcmp(hooked_function, "send") == 0)
 		{
 			set_hook("ws2_32.dll", "send", (void*)send_hook);
 
