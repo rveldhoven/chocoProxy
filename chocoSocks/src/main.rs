@@ -5,8 +5,8 @@ use std::{thread,time};
 use std::time::{UNIX_EPOCH, SystemTime};
 use std::io::{Read, Write};
 use std::mem::transmute;
-use crate::pcap::*;
 use std::fs::File;
+use crate::pcap::*;
 
 #[repr(C)]
 struct s4Packet
@@ -90,7 +90,18 @@ fn handle_client(mut client_stream : TcpStream)
 	server_stream.set_nonblocking(true).expect("set_nonblocking call failed.");
 	
 	let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
-	let mut file = File::create("pcaps\\stream".to_string() + &timestamp.to_string());
+	let mut file = match File::create("stream".to_string() + &timestamp.to_string() + &".pcap".to_string())
+	{
+		Ok(v) => v,
+		Err(_) => 
+		{
+			println!("Could not open file for writing.");
+			return;
+		},
+	};
+	let global_header = pcap::globalHeader::create_header();
+	let header_data = unsafe { any_as_u8_slice(&global_header) };
+	file.write(header_data);
 	
 	let mut activity : bool = false;
 	
@@ -104,6 +115,7 @@ fn handle_client(mut client_stream : TcpStream)
 		};
 		if bytes_received != 0
 		{
+			pcap::save_to_pcap(&pcapPacket::create_from_bytes(&packet_data[0..bytes_received]), &mut file);
 			if let Err(_) = client_stream.write(&packet_data[0..bytes_received])
 			{
 				server_stream.shutdown(Shutdown::Both);
@@ -119,6 +131,7 @@ fn handle_client(mut client_stream : TcpStream)
 		};
 		if bytes_received != 0
 		{
+			pcap::save_to_pcap(&pcapPacket::create_from_bytes(&packet_data[0..bytes_received]), &mut file);
 			if let Err(_) = server_stream.write(&packet_data[0..bytes_received])
 			{
 				client_stream.shutdown(Shutdown::Both);
