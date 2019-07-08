@@ -30,10 +30,10 @@
         {
             this.ok_button = new System.Windows.Forms.Button();
             this.stop_button = new System.Windows.Forms.Button();
-            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.label1 = new System.Windows.Forms.Label();
-            this.mitm_udp = new System.Windows.Forms.CheckBox();
-            this.mitm_tcp = new System.Windows.Forms.CheckBox();
+            this.mitm_udp = new System.Windows.Forms.RadioButton();
+            this.mitm_tcp = new System.Windows.Forms.RadioButton();
             this.inject_evelated = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
@@ -59,13 +59,13 @@
             this.stop_button.UseVisualStyleBackColor = true;
             this.stop_button.Click += new System.EventHandler(this.stop_button_Click);
             // 
-            // textBox1
+            // comboBox1
             // 
-            this.textBox1.Location = new System.Drawing.Point(58, 16);
-            this.textBox1.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(244, 26);
-            this.textBox1.TabIndex = 2;
+            this.comboBox1.Location = new System.Drawing.Point(58, 16);
+            this.comboBox1.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.comboBox1.Name = "comboBox1";
+            this.comboBox1.Size = new System.Drawing.Size(244, 26);
+            this.comboBox1.TabIndex = 2;
             // 
             // label1
             // 
@@ -80,7 +80,6 @@
             // 
             this.mitm_udp.AutoSize = true;
             this.mitm_udp.Checked = true;
-            this.mitm_udp.CheckState = System.Windows.Forms.CheckState.Checked;
             this.mitm_udp.Location = new System.Drawing.Point(309, 19);
             this.mitm_udp.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.mitm_udp.Name = "mitm_udp";
@@ -125,7 +124,7 @@
             this.Controls.Add(this.mitm_tcp);
             this.Controls.Add(this.mitm_udp);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.textBox1);
+            this.Controls.Add(this.comboBox1);
             this.Controls.Add(this.stop_button);
             this.Controls.Add(this.ok_button);
             this.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -141,10 +140,10 @@
 
         private System.Windows.Forms.Button ok_button;
         private System.Windows.Forms.Button stop_button;
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.ComboBox comboBox1;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.CheckBox mitm_udp;
-        private System.Windows.Forms.CheckBox mitm_tcp;
+        private System.Windows.Forms.RadioButton mitm_udp;
+        private System.Windows.Forms.RadioButton mitm_tcp;
         private System.Windows.Forms.CheckBox inject_evelated;
     }
 }

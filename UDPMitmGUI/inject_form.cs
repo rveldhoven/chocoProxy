@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,6 +24,11 @@ namespace UDPMitmGUI
         public inject_form()
         {
             InitializeComponent();
+            Process[] processlist = Process.GetProcesses();
+            foreach (Process process in processlist)
+            {
+                comboBox1.Items.Add(process.ProcessName + " - PID " + process.Id);
+            }
             do_mitm_udp = mitm_udp.Checked;
             do_mitm_tcp = mitm_tcp.Checked;
         }
@@ -31,7 +37,7 @@ namespace UDPMitmGUI
         {
             ok_clicked = true;
             stop_clicked = false;
-            pid = textBox1.Text;
+            pid = comboBox1.Text.Split(' ').Last();
             do_mitm_udp = mitm_udp.Checked;
             do_mitm_tcp = mitm_tcp.Checked;
             do_inject_elevated = inject_evelated.Checked;
