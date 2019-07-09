@@ -2,23 +2,23 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="cHooks">
-      <UniqueIdentifier>{89462ed8-e235-4874-912d-80391b057d98}</UniqueIdentifier>
+      <UniqueIdentifier>{41933406-14d7-4e20-a665-0c9b7aa7394a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\chocoDLL\x64_hook.cpp">
+    <ClCompile Include="x64_hook.cpp">
       <Filter>cHooks</Filter>
     </ClCompile>
-    <ClCompile Include="..\chocoDLL\x86_hook.cpp">
+    <ClCompile Include="x86_hook.cpp">
       <Filter>cHooks</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\chocoDLL\x64_hook.hpp">
+    <ClInclude Include="x64_hook.hpp">
       <Filter>cHooks</Filter>
     </ClInclude>
-    <ClInclude Include="..\chocoDLL\x86_hook.hpp">
+    <ClInclude Include="x86_hook.hpp">
       <Filter>cHooks</Filter>
     </ClInclude>
   </ItemGroup>

@@ -9,8 +9,8 @@
 #include <ws2tcpip.h>
 #include <windows.h>
 
-#include "..\\UDPMitmClient\x64_hook.hpp"
-#include "..\\UDPMitmClient\x86_hook.hpp"
+#include "..\\chocoDLL\x64_hook.hpp"
+#include "..\\chocoDLL\x86_hook.hpp"
 
 #pragma comment (lib, "Ws2_32.lib")
 
