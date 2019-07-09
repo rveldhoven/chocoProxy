@@ -7,6 +7,31 @@
         mc:Ignorable="d"
         Title="chocoGUI" Height="450" Width="800">
     <Grid>
-        
+        <TabControl>
+            <TabItem Header="Main settings">
+           </TabItem>
+            <TabItem Header="TCP streams">
+                <TabControl>
+                    <ListView x:Name="tcp_stream_view" Height="365" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+                        <ListView.Resources>
+                            <ContextMenu x:Key="tcp_stream_menu">
+                                <MenuItem Header="Open pcap" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                                <MenuItem Header="Save pcap" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                                <MenuItem Header="Close connection" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                            </ContextMenu>
+                        </ListView.Resources>
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="{x:Type ListViewItem}">
+                                <Setter Property="BorderBrush" Value="LightGray" />
+                                <Setter Property="BorderThickness" Value="0,0,1,1" />
+                                <Setter Property="ContextMenu" Value="{StaticResource tcp_stream_menu}" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                    </ListView>
+                </TabControl>
+            </TabItem>
+            <TabItem Header="UDP streams">
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>
