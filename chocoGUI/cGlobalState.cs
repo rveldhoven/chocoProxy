@@ -19,6 +19,7 @@ namespace chocoGUI
         public bool proxy_connected { get; set; }
         public string stream_start { get; set; }
     }
+
     static class cGlobalState
     {
         private static object           _tcp_streams_mutex = new object();
