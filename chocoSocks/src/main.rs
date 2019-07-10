@@ -6,7 +6,10 @@ use std::time::{UNIX_EPOCH, SystemTime};
 use std::io::{Read, Write};
 use std::mem::transmute;
 use std::fs::File;
+use std::sync::{Arc, Mutex};
 use crate::pcap::*;
+
+/* ================== SOCKS4 packet ================== */
 
 #[repr(C)]
 struct s4Packet
@@ -28,17 +31,54 @@ impl s4Packet
 		ip_address.copy_from_slice(&bytes[4..8]);
 	
 		// parse bytes
-		s4Packet{ 
+		s4Packet
+		{ 
 			socks_version : bytes[0], 
 			command_type : bytes[1],
 			socks_port : unsafe { transmute::<[u8;2], u16>(port) }.to_be(),
 			ip_address : Ipv4Addr::new(bytes[4],bytes[5],bytes[6],bytes[7])
-			}
+		}
 	}
 }
 
-fn handle_client(mut client_stream : TcpStream) 
+/* ================== Global state ================== */
+
+#[repr(C)]
+struct streamState
 {
+	destination_ip : String,
+	destination_port : String,
+	source_ip: String,
+	source_port : String,
+	source_process_pid : String,
+	source_process_name : String,
+	backend_file : String,
+	stream_start : String,
+	proxy_connected : String
+}
+
+impl streamState
+{
+	fn new(destination_ip : String, destination_port : String, source_ip: String, source_port : String, source_process_pid : String, source_process_name : String, backend_file : String, stream_start : String, proxy_connected : String) -> streamState
+	{
+		streamState
+		{
+			destination_ip,
+			destination_port,
+			source_ip,
+			source_port,
+			source_process_pid,
+			source_process_name,
+			backend_file,
+			stream_start,
+			proxy_connected
+		}
+	}
+}
+
+fn handle_client(mut client_stream : TcpStream, thread_count : ) 
+{
+	
 	let mut header:[u8; 8] = [0; 8];
 	if let Err(_) = client_stream.read(&mut header)
 	{
@@ -149,6 +189,8 @@ fn handle_client(mut client_stream : TcpStream)
 
 fn main() 
 {
+	let mut state_vector: Vec<streamState> = Vec::new();
+	let thread_count = Arc::new(Mutex::new(state_vector));
 
 /* ================== Command listener ================== */
 
@@ -182,9 +224,10 @@ fn main()
 	
 	for stream in tcp_listener.incoming() 
 	{
+		let thread_clone = thread_count.clone();
 		let thread = thread::spawn(move || 
 			{
-				handle_client(stream.expect("Connection failed"));
+				handle_client(stream.expect("Connection failed"), thread_clone);
 			});
 	}
 
