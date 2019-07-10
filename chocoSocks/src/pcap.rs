@@ -2,7 +2,10 @@ use std::io::Write;
 use std::thread;
 use std::fs::File;
 use std::io::Error;
+use std::convert::TryInto;
 use std::time::{UNIX_EPOCH, SystemTime};
+
+use crate::error::*;
 
 /* ================== Global Header ================== */
 
@@ -76,24 +79,55 @@ pub struct ipHeader
 
 impl ipHeader
 {
-	pub fn create_header() -> ipHeader
+	pub fn create_header(source_ip : u32, dest_ip :u32, packet_size : u16) -> ipHeader
 	{
-		ipHeader {
+		ipHeader
+		{
 			ip_vhl : 0x45,
 			ip_tos : 0x00,
-			ip_len : 0x14,
+			ip_len : packet_size,
 			ip_id : 0x0000,
 			ip_flagplusoff : 0x0000,
 			ip_ttl : 0x00,
 			ip_proto : 0x00,
 			ip_hsum : 0x00,
-			ip_src : 0x00000000,
-			ip_dst : 0x00000000,
+			ip_src : source_ip,
+			ip_dst : dest_ip,
 		}
 	}
 }
 
 /* ================== Transport Header ================== */
+#[repr(C)]
+pub struct tcpHeader
+{
+    source_port: u16,
+    destination_port: u16,
+    seq: u32,
+    ack: u32,
+    off_res_flags: u16,
+    win_size: u16,
+    checksum: u16,
+    urgent: u16
+}
+
+impl tcpHeader
+{
+	pub fn create_header(source_port: u16, destination_port: u16, seq: u32, win: u16) -> TcpHeader
+	{
+		tcpHeader
+		{
+			source_port,
+			destination_port,
+			seq,
+			ack: 0,
+			off_res_flags : 0,
+			win_size : win,
+			checksum: 0,
+			urgent: 0,
+		}
+	}
+}
 
 #[repr(C)]
 pub struct pcapPacket
@@ -110,7 +144,8 @@ impl pcapPacket
 	pub fn create_from_bytes(bytes : &[u8]) -> pcapPacket
 	{
 		let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-		pcapPacket {
+		pcapPacket 
+		{
 			ts_sec : current_time.as_secs() as u32,
 			ts_usec : current_time.subsec_micros(),
 			incl_len : bytes.len() as u32,
@@ -120,29 +155,37 @@ impl pcapPacket
 	}
 }
 
-
-pub fn save_to_pcap(packet: &pcapPacket, file: &mut File) -> std::io::Result<()>
+pub fn save_to_pcap(packet: &pcapPacket, syn_number : u32, file: &mut File) -> std::io::Result<()>
 {
 	let eth = ethernetHeader::create_header();
-	let ip = ipHeader::create_header();
+	let ip = ipHeader::create_header(0, 1, (std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>() + packet.data.len()).try_into().unwrap() );
+	let tcp = tcpHeader::create_header(0, 1, syn_number);
+	
 	let ether_data = unsafe{ any_as_u8_slice(&eth) };
 	let ip_data = unsafe{ any_as_u8_slice(&ip) };
-	let packet_data = unsafe{ any_as_u8_slice(packet) };
+	let tcp_data = unsafe{ any_as_u8_slice(&tcp) };
+
 	let mut data = Vec::new();
 	
 	data.extend_from_slice(ether_data);
 	data.extend_from_slice(ip_data);
-	data.extend_from_slice(packet_data);
+	data.extend_from_slice(tcp_data);
+	data.extend_from_slice(&packet.data[..]);
+
+	let real_packet = pcapPacket::create_from_bytes(&data[..]);
 	
-	match file.write(&data)
+	let final_data = unsafe{ any_as_u8_slice(&real_packet) };
+	
+	if let Err(_) = file.write(&final_data)
 	{
-		Ok(v) => file.flush(),
-		Err(_) =>
-			{
-				println!("Writing failed");
-				return Err(Error::last_os_error());
-			},
-	};
+		error_and_exit("Failed to append pcap data to pcap");
+	}
+	
+	if let Err(_) = file.flush()
+	{
+		error_and_exit("Failed to append pcap data to pcap");
+	}
+
 	Ok(())
 }
 

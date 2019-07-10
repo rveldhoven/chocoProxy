@@ -1,4 +1,5 @@
 pub mod pcap;
+pub mod error;
 
 use std::net::{TcpListener, TcpStream, UdpSocket, SocketAddr, Ipv4Addr, IpAddr, Shutdown};
 use std::{thread,time};
@@ -6,7 +7,9 @@ use std::time::{UNIX_EPOCH, SystemTime};
 use std::io::{Read, Write};
 use std::mem::transmute;
 use std::fs::File;
+
 use crate::pcap::*;
+use crate::error::*;
 
 #[repr(C)]
 struct s4Packet
@@ -115,7 +118,7 @@ fn handle_client(mut client_stream : TcpStream)
 		};
 		if bytes_received != 0
 		{
-			pcap::save_to_pcap(&pcapPacket::create_from_bytes(&packet_data[0..bytes_received]), &mut file);
+			pcap::save_to_pcap(&pcapPacket::create_from_bytes(&packet_data[0..bytes_received]), 1, &mut file);
 			if let Err(_) = client_stream.write(&packet_data[0..bytes_received])
 			{
 				server_stream.shutdown(Shutdown::Both);
@@ -131,7 +134,7 @@ fn handle_client(mut client_stream : TcpStream)
 		};
 		if bytes_received != 0
 		{
-			pcap::save_to_pcap(&pcapPacket::create_from_bytes(&packet_data[0..bytes_received]), &mut file);
+			pcap::save_to_pcap(&pcapPacket::create_from_bytes(&packet_data[0..bytes_received]), 1, &mut file);
 			if let Err(_) = server_stream.write(&packet_data[0..bytes_received])
 			{
 				client_stream.shutdown(Shutdown::Both);
