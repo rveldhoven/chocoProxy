@@ -1,5 +1,6 @@
 pub mod pcap;
 pub mod error;
+pub mod globalstate;
 
 use std::net::{TcpListener, TcpStream, UdpSocket, SocketAddr, Ipv4Addr, IpAddr, Shutdown};
 use std::{thread,time};
@@ -11,6 +12,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::pcap::*;
 use crate::error::*;
+use crate::globalstate::*;
 
 /* ================== SOCKS4 packet ================== */
 
@@ -44,42 +46,7 @@ impl s4Packet
 	}
 }
 
-/* ================== Global state ================== */
-
-#[repr(C)]
-struct streamState
-{
-	destination_ip : String,
-	destination_port : String,
-	source_ip: String,
-	source_port : String,
-	source_process_pid : String,
-	source_process_name : String,
-	backend_file : String,
-	stream_start : String,
-	proxy_connected : String
-}
-
-impl streamState
-{
-	fn new(destination_ip : String, destination_port : String, source_ip: String, source_port : String, source_process_pid : String, source_process_name : String, backend_file : String, stream_start : String, proxy_connected : String) -> streamState
-	{
-		streamState
-		{
-			destination_ip,
-			destination_port,
-			source_ip,
-			source_port,
-			source_process_pid,
-			source_process_name,
-			backend_file,
-			stream_start,
-			proxy_connected
-		}
-	}
-}
-
-fn handle_client(mut client_stream : TcpStream, thread_count : ) 
+fn handle_client(mut client_stream : TcpStream, mut global_state : globalState ) 
 {
 	
 	let mut header:[u8; 8] = [0; 8];
@@ -192,8 +159,7 @@ fn handle_client(mut client_stream : TcpStream, thread_count : )
 
 fn main() 
 {
-	let mut state_vector: Vec<streamState> = Vec::new();
-	let thread_count = Arc::new(Mutex::new(state_vector));
+	let mut global_state : globalState = globalState::new();
 
 /* ================== Command listener ================== */
 
@@ -227,10 +193,10 @@ fn main()
 	
 	for stream in tcp_listener.incoming() 
 	{
-		let thread_clone = thread_count.clone();
+		let thread_global_state = global_state.clone();
 		let thread = thread::spawn(move || 
 			{
-				handle_client(stream.expect("Connection failed"), thread_clone);
+				handle_client(stream.expect("Connection failed"), thread_global_state);
 			});
 	}
 

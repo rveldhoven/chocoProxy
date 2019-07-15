@@ -113,7 +113,7 @@ pub struct tcpHeader
 
 impl tcpHeader
 {
-	pub fn create_header(source_port: u16, destination_port: u16, seq: u32, win: u16) -> TcpHeader
+	pub fn create_header(source_port: u16, destination_port: u16, seq: u32, win: u16) -> tcpHeader
 	{
 		tcpHeader
 		{
@@ -159,7 +159,7 @@ pub fn save_to_pcap(packet: &pcapPacket, syn_number : u32, file: &mut File) -> s
 {
 	let eth = ethernetHeader::create_header();
 	let ip = ipHeader::create_header(0, 1, (std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>() + packet.data.len()).try_into().unwrap() );
-	let tcp = tcpHeader::create_header(0, 1, syn_number);
+	let tcp = tcpHeader::create_header(0, 1, syn_number, 64000);
 	
 	let ether_data = unsafe{ any_as_u8_slice(&eth) };
 	let ip_data = unsafe{ any_as_u8_slice(&ip) };
@@ -178,12 +178,12 @@ pub fn save_to_pcap(packet: &pcapPacket, syn_number : u32, file: &mut File) -> s
 	
 	if let Err(_) = file.write(&final_data)
 	{
-		error_and_exit("Failed to append pcap data to pcap");
+		error_and_exit(file!(), line!(), "Failed to append pcap data to pcap");
 	}
 	
-	if let Err(_) = file.flush()
+	if let Err(_) = file.flush() // pub fn error_and_exit(file : String, line : u32, message : String) 
 	{
-		error_and_exit("Failed to append pcap data to pcap");
+		error_and_exit(file!(), line!(), "Failed to append pcap data to pcap");
 	}
 
 	Ok(())
