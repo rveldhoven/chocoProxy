@@ -123,7 +123,7 @@ impl tcpHeader
 			th_seq : (*seq).to_be(),
 			th_ack: (*ack).to_be(),
 			th_off : 0x50,
-			th_flags : 0x2,
+			th_flags : 0x18,
 			th_win : win,
 			th_sum: 0,
 			th_urp: 0,
@@ -171,13 +171,13 @@ impl pcapPacket
 	}
 }
 
-fn emit_syn(packet_data : &Vec<u8>, a_syn : &u32,  b_syn : &u32, file: &mut File)
+fn emit_syn(packet_data : &Vec<u8>, src : &u32, dst : &u32, a_syn : &u32,  b_syn : &u32, file: &mut File)
 {	
 	let header_length = (std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>() );
 	let packet_length = (header_length + packet_data.len());
 	
 	let eth = ethernetHeader::create_header();
-	let ip = ipHeader::create_header(0, 1, packet_length.try_into().unwrap() );
+	let ip = ipHeader::create_header(*src, *dst, packet_length.try_into().unwrap() );
 	let tcp = tcpHeader::create_header_syn(0, 1, a_syn, b_syn, 64000);
 	
 	let ether_data = unsafe{ any_as_u8_slice(&eth) };
@@ -211,12 +211,12 @@ fn emit_syn(packet_data : &Vec<u8>, a_syn : &u32,  b_syn : &u32, file: &mut File
 	}
 }
 
-fn emit_ack(packet_data : &Vec<u8>, a_syn : &u32,  b_syn : &u32, file: &mut File)
+fn emit_ack(packet_data : &Vec<u8>, src : &u32, dst : &u32, a_syn : &u32,  b_syn : &u32, file: &mut File)
 {
 	let ack_number : u32 = *a_syn + packet_data.len() as u32;
 
 	let eth = ethernetHeader::create_header();
-	let ip = ipHeader::create_header(1, 0, (std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>()).try_into().unwrap() );
+	let ip = ipHeader::create_header(*src, *dst, (std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>()).try_into().unwrap() );
 	let tcp = tcpHeader::create_header_ack(1, 0, b_syn, &ack_number, 64000);
 	
 	let ether_data = unsafe{ any_as_u8_slice(&eth) };
@@ -249,11 +249,11 @@ fn emit_ack(packet_data : &Vec<u8>, a_syn : &u32,  b_syn : &u32, file: &mut File
 	}
 }
 
-pub fn save_to_pcap(packet_data : &Vec<u8>, a_syn : &u32,  b_syn : &u32, file: &mut File)
+pub fn save_to_pcap(packet_data : &Vec<u8>, src : &u32, dst : &u32, a_syn : &u32,  b_syn : &u32, file: &mut File)
 {
-	emit_syn(packet_data, a_syn, b_syn, file);
+	emit_syn(packet_data, src, dst, a_syn, b_syn, file);
 
-	emit_ack(packet_data, a_syn, b_syn, file);
+	emit_ack(packet_data, dst, src, a_syn, b_syn, file);
 }
 
 pub unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] 

@@ -130,7 +130,7 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState )
 		
 		if bytes_received != 0
 		{
-			pcap::save_to_pcap(&packet_data[0..bytes_received].to_vec(), &server_client_syn, &client_server_syn, &mut file);
+			pcap::save_to_pcap(&packet_data[0..bytes_received].to_vec(), &1, &0, &server_client_syn, &client_server_syn, &mut file);
 			
 			server_client_syn += bytes_received as u32;
 			
@@ -150,7 +150,7 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState )
 		
 		if bytes_received != 0
 		{
-			pcap::save_to_pcap(&packet_data[0..bytes_received].to_vec(), &client_server_syn, &server_client_syn, &mut file);
+			pcap::save_to_pcap(&packet_data[0..bytes_received].to_vec(), &0, &1, &client_server_syn, &server_client_syn, &mut file);
 			
 			client_server_syn += bytes_received as u32;
 			
