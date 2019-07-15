@@ -113,14 +113,29 @@ pub struct tcpHeader
 
 impl tcpHeader
 {
-	pub fn create_header(source_port: u16, destination_port: u16, seq: u32, win: u16) -> tcpHeader
+	pub fn create_header_syn(source_port: u16, destination_port: u16, seq: &u32, win: u16) -> tcpHeader
 	{
 		tcpHeader
 		{
 			source_port,
 			destination_port,
-			seq,
+			seq : *seq,
 			ack: 0,
+			off_res_flags : 0,
+			win_size : win,
+			checksum: 0,
+			urgent: 0,
+		}
+	}
+	
+	pub fn create_header_ack(source_port: u16, destination_port: u16, ack: &u32, win: u16) -> tcpHeader
+	{
+		tcpHeader
+		{
+			source_port,
+			destination_port,
+			seq : 0,
+			ack : *ack,
 			off_res_flags : 0,
 			win_size : win,
 			checksum: 0,
@@ -136,7 +151,6 @@ pub struct pcapPacket
 	ts_usec : u32,
 	incl_len : u32,
 	orig_len : u32,
-	data : Vec <u8>,
 }
 
 impl pcapPacket
@@ -150,16 +164,15 @@ impl pcapPacket
 			ts_usec : current_time.subsec_micros(),
 			incl_len : bytes.len() as u32,
 			orig_len : bytes.len() as u32,
-			data : bytes.to_vec(),
 		}
 	}
 }
 
-pub fn save_to_pcap(packet: &pcapPacket, syn_number : u32, file: &mut File) -> std::io::Result<()>
+fn emit_syn(packet_data : &Vec<u8>, syn_number : &u32, file: &mut File)
 {
 	let eth = ethernetHeader::create_header();
-	let ip = ipHeader::create_header(0, 1, (std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>() + packet.data.len()).try_into().unwrap() );
-	let tcp = tcpHeader::create_header(0, 1, syn_number, 64000);
+	let ip = ipHeader::create_header(0, 1, (std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>() + packet_data.len()).try_into().unwrap() );
+	let tcp = tcpHeader::create_header_syn(0, 1, syn_number, 64000);
 	
 	let ether_data = unsafe{ any_as_u8_slice(&eth) };
 	let ip_data = unsafe{ any_as_u8_slice(&ip) };
@@ -170,23 +183,71 @@ pub fn save_to_pcap(packet: &pcapPacket, syn_number : u32, file: &mut File) -> s
 	data.extend_from_slice(ether_data);
 	data.extend_from_slice(ip_data);
 	data.extend_from_slice(tcp_data);
-	data.extend_from_slice(&packet.data[..]);
+	data.extend_from_slice(&packet_data[..]);
 
 	let real_packet = pcapPacket::create_from_bytes(&data[..]);
 	
-	let final_data = unsafe{ any_as_u8_slice(&real_packet) };
+	let pcap_header_bytes = unsafe{ any_as_u8_slice(&real_packet) };
 	
-	if let Err(_) = file.write(&final_data)
+	if let Err(_) = file.write(&pcap_header_bytes)
 	{
 		error_and_exit(file!(), line!(), "Failed to append pcap data to pcap");
 	}
 	
-	if let Err(_) = file.flush() // pub fn error_and_exit(file : String, line : u32, message : String) 
+	if let Err(_) = file.write(&data[..])
 	{
 		error_and_exit(file!(), line!(), "Failed to append pcap data to pcap");
 	}
+	
+	if let Err(_) = file.flush() 
+	{
+		error_and_exit(file!(), line!(), "Failed to append pcap data to pcap");
+	}
+}
 
-	Ok(())
+fn emit_ack(packet_data : &Vec<u8>, syn_number : &u32, file: &mut File)
+{
+	let ack_number : u32 = *syn_number + (std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>() + packet_data.len()) as u32;
+
+	let eth = ethernetHeader::create_header();
+	let ip = ipHeader::create_header(1, 0, (std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>()).try_into().unwrap() );
+	let tcp = tcpHeader::create_header_ack(1, 0, &ack_number, 64000);
+	
+	let ether_data = unsafe{ any_as_u8_slice(&eth) };
+	let ip_data = unsafe{ any_as_u8_slice(&ip) };
+	let tcp_data = unsafe{ any_as_u8_slice(&tcp) };
+
+	let mut data = Vec::new();
+	
+	data.extend_from_slice(ether_data);
+	data.extend_from_slice(ip_data);
+	data.extend_from_slice(tcp_data);
+
+	let real_packet = pcapPacket::create_from_bytes(&data[..]);
+	
+	let pcap_header_bytes = unsafe{ any_as_u8_slice(&real_packet) };
+	
+	if let Err(_) = file.write(&pcap_header_bytes)
+	{
+		error_and_exit(file!(), line!(), "Failed to append pcap data to pcap");
+	}
+	
+	if let Err(_) = file.write(&data[..])
+	{
+		error_and_exit(file!(), line!(), "Failed to append pcap data to pcap");
+	}
+	
+	if let Err(_) = file.flush() 
+	{
+		error_and_exit(file!(), line!(), "Failed to append pcap data to pcap");
+	}
+}
+
+pub fn save_to_pcap(packet_data : &Vec<u8>, syn_number : u32, file: &mut File)
+{
+	emit_syn(packet_data, &syn_number, file);
+
+	emit_ack(packet_data, &syn_number, file);
 }
 
 pub unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] 
