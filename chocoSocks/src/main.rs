@@ -78,6 +78,10 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState )
 	println!("Address: {}", littlePacket.ip_address);
 	*/
 	
+	
+	let mut server_client_syn : u32 = 0;
+	let mut client_server_syn : u32 = 0;
+	
 	let connection = SocketAddr::new(IpAddr::V4(littlePacket.ip_address),littlePacket.socks_port);
 	println!("Connecting to {} on port {}...", littlePacket.ip_address, littlePacket.socks_port);
 	let mut server_stream = match TcpStream::connect(&connection)
@@ -123,9 +127,13 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState )
 			Ok(v) => v,
 			Err(_) => 0,
 		};
+		
 		if bytes_received != 0
 		{
-			pcap::save_to_pcap(&packet_data[0..bytes_received].to_vec(), 1, &mut file);
+			pcap::save_to_pcap(&packet_data[0..bytes_received].to_vec(), &server_client_syn, &client_server_syn, &mut file);
+			
+			server_client_syn += bytes_received as u32;
+			
 			if let Err(_) = client_stream.write(&packet_data[0..bytes_received])
 			{
 				server_stream.shutdown(Shutdown::Both);
@@ -139,9 +147,13 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState )
 			Ok(v) => v,
 			Err(_) => 0,
 		};
+		
 		if bytes_received != 0
 		{
-			pcap::save_to_pcap(&packet_data[0..bytes_received].to_vec(), 1, &mut file);
+			pcap::save_to_pcap(&packet_data[0..bytes_received].to_vec(), &client_server_syn, &server_client_syn, &mut file);
+			
+			client_server_syn += bytes_received as u32;
+			
 			if let Err(_) = server_stream.write(&packet_data[0..bytes_received])
 			{
 				client_stream.shutdown(Shutdown::Both);
@@ -163,6 +175,7 @@ fn main()
 
 /* ================== Command listener ================== */
 
+/*
 	let mut command : [u8; 1024] = [0; 1024];
 	let command_listener = match UdpSocket::bind("127.0.0.1:1001")
 	{
@@ -182,6 +195,7 @@ fn main()
 			_ => println!("Unknown command"),
 		}
 	}
+*/
 	
 /* ================== TCP listener ================== */
 
@@ -201,10 +215,11 @@ fn main()
 	}
 
 /* ================== UDP listener ================== */
-	
+	/*
 	let udp_listener = match UdpSocket::bind("127.0.0.1:81")
 	{
 		Ok(v) => v,
 		Err(_) => panic!("Failed to open UDP listener."),
 	};
+	*/
 }
