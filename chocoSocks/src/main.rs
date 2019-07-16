@@ -48,7 +48,7 @@ impl s4Packet
 
 fn handle_client(mut client_stream : TcpStream, mut global_state : globalState ) 
 {
-	
+
 	let mut header:[u8; 8] = [0; 8];
 	if let Err(_) = client_stream.read(&mut header)
 	{
@@ -104,7 +104,8 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState )
 	server_stream.set_nonblocking(true).expect("set_nonblocking call failed.");
 	
 	let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
-	let mut file = match File::create("stream".to_string() + &timestamp.to_string() + &".pcap".to_string())
+	let filename = "stream".to_string() + &timestamp.to_string() + &".pcap".to_string();
+	let mut file = match File::create(filename)
 	{
 		Ok(v) => v,
 		Err(_) => 
@@ -113,9 +114,26 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState )
 			return;
 		},
 	};
+	
 	let global_header = pcap::globalHeader::create_header();
 	let header_data = unsafe { any_as_u8_slice(&global_header) };
 	file.write(header_data);
+	
+	/* append to state */
+	
+	let state_id = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis().to_string();
+	let state_data = globalstate::streamState::new( // dummy data
+		littlePacket.ip_address.to_string(),
+		littlePacket.socks_port.to_string(),
+		String::new("127.0.0.1"),
+		String::new("1337"),
+		String::new("random_pid"),
+		String::new("random_process_name"),
+		filename,
+		String::new("random_stream_start"),
+		String::new("yes"));
+	let global_state = global_state.lock().unwrap();
+	global_state.insert(state_id,state_data);
 	
 	let mut activity : bool = false;
 	
@@ -137,6 +155,8 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState )
 			if let Err(_) = client_stream.write(&packet_data[0..bytes_received])
 			{
 				server_stream.shutdown(Shutdown::Both);
+				let global_state = global_state.lock().unwrap();
+				global_state.remove(state_id);
 				break;
 			}
 			activity = true;
@@ -169,10 +189,59 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState )
 		
 }
 
+fn command(mut global_state : globalState)
+{
+	let command_listener = match TcpListener::bind("127.0.0.1:81")
+	{
+		Ok(v) => v,
+		Err(_) => panic!("Failed to open command TCP listener."),
+	};
+	
+	for stream in command_listener.incoming() 
+	{
+		let thread = thread::spawn(move || 
+			{
+				handle_client(stream.expect("Connection failed"), thread_global_state);
+			});
+	}
+}
+
 fn main() 
 {
 	let mut global_state : globalState = globalState::new();
+	
+/* ================== TCP listener ================== */
 
+	let tcp_listener = match TcpListener::bind("127.0.0.1:80") 
+	{
+		Ok(v) => v,
+		Err(_) => panic!("Failed to open TCP listener."),
+	};
+	
+	for stream in tcp_listener.incoming() 
+	{
+		let thread_global_state = global_state.clone();
+		let thread = thread::spawn(move || 
+			{
+				handle_client(stream.expect("Connection failed"), thread_global_state);
+			});
+	}
+	
+	let command_global_state = global_state.clone();
+	let command_thread = thread::spawn(move || 
+			{
+				command(command_global_state);
+			});
+
+/* ================== UDP listener ================== */
+	/*
+	let udp_listener = match UdpSocket::bind("127.0.0.1:81")
+	{
+		Ok(v) => v,
+		Err(_) => panic!("Failed to open UDP listener."),
+	};
+*/
+	
 /* ================== Command listener ================== */
 
 /*
@@ -196,30 +265,4 @@ fn main()
 		}
 	}
 */
-	
-/* ================== TCP listener ================== */
-
-	let tcp_listener = match TcpListener::bind("127.0.0.1:80") 
-	{
-		Ok(v) => v,
-		Err(_) => panic!("Failed to open TCP listener."),
-	};
-	
-	for stream in tcp_listener.incoming() 
-	{
-		let thread_global_state = global_state.clone();
-		let thread = thread::spawn(move || 
-			{
-				handle_client(stream.expect("Connection failed"), thread_global_state);
-			});
-	}
-
-/* ================== UDP listener ================== */
-	/*
-	let udp_listener = match UdpSocket::bind("127.0.0.1:81")
-	{
-		Ok(v) => v,
-		Err(_) => panic!("Failed to open UDP listener."),
-	};
-	*/
 }

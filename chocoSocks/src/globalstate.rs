@@ -22,7 +22,7 @@ struct streamState
 
 impl streamState
 {
-	fn new(destination_ip : String, destination_port : String, source_ip: String, source_port : String, source_process_pid : String, source_process_name : String, backend_file : String, stream_start : String, proxy_connected : String) -> streamState
+	pub fn new(destination_ip : String, destination_port : String, source_ip: String, source_port : String, source_process_pid : String, source_process_name : String, backend_file : String, stream_start : String, proxy_connected : String) -> streamState
 	{
 		streamState
 		{
