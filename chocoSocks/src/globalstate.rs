@@ -7,7 +7,7 @@ use std::sync::Mutex;
 /* ================== Global state ================== */
 
 #[repr(C)]
-struct streamState
+pub struct streamState
 {
 	destination_ip : String,
 	destination_port : String,
@@ -42,7 +42,7 @@ impl streamState
 #[derive(Clone)]
 pub struct globalState
 {
-	tcp_streams : Arc<Mutex<HashMap<String, streamState>>>,
+	pub tcp_streams : Arc<Mutex<HashMap<String, streamState>>>,
 }
 
 impl globalState

@@ -1,6 +1,7 @@
 pub mod pcap;
 pub mod error;
 pub mod globalstate;
+pub mod command;
 
 use std::net::{TcpListener, TcpStream, UdpSocket, SocketAddr, Ipv4Addr, IpAddr, Shutdown};
 use std::{thread,time};
@@ -13,6 +14,7 @@ use std::sync::{Arc, Mutex};
 use crate::pcap::*;
 use crate::error::*;
 use crate::globalstate::*;
+use crate::command::*;
 
 /* ================== SOCKS4 packet ================== */
 
@@ -46,7 +48,7 @@ impl s4Packet
 	}
 }
 
-fn handle_client(mut client_stream : TcpStream, mut global_state : globalState ) 
+fn handle_client(mut client_stream : TcpStream, mut global_state : globalState) 
 {
 
 	let mut header:[u8; 8] = [0; 8];
@@ -105,7 +107,7 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState )
 	
 	let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
 	let filename = "stream".to_string() + &timestamp.to_string() + &".pcap".to_string();
-	let mut file = match File::create(filename)
+	let mut file = match File::create(&filename)
 	{
 		Ok(v) => v,
 		Err(_) => 
@@ -125,15 +127,22 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState )
 	let state_data = globalstate::streamState::new( // dummy data
 		littlePacket.ip_address.to_string(),
 		littlePacket.socks_port.to_string(),
-		String::new("127.0.0.1"),
-		String::new("1337"),
-		String::new("random_pid"),
-		String::new("random_process_name"),
+		"127.0.0.1".to_string(),
+		"1337".to_string(),
+		"random_pid".to_string(),
+		"random_process_name".to_string(),
 		filename,
-		String::new("random_stream_start"),
-		String::new("yes"));
-	let global_state = global_state.lock().unwrap();
-	global_state.insert(state_id,state_data);
+		"random_stream_start".to_string(),
+		"yes".to_string());
+		
+	if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock()
+	{
+		unlocked_streams.insert(state_id.clone(),state_data);
+	}
+	else
+	{
+		error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
+	}
 	
 	let mut activity : bool = false;
 	
@@ -155,8 +164,16 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState )
 			if let Err(_) = client_stream.write(&packet_data[0..bytes_received])
 			{
 				server_stream.shutdown(Shutdown::Both);
-				let global_state = global_state.lock().unwrap();
-				global_state.remove(state_id);
+				
+				if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock()
+				{
+					unlocked_streams.remove(&state_id);
+				}
+				else
+				{
+					error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
+				}
+				
 				break;
 			}
 			activity = true;
@@ -177,6 +194,16 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState )
 			if let Err(_) = server_stream.write(&packet_data[0..bytes_received])
 			{
 				client_stream.shutdown(Shutdown::Both);
+			
+				if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock()
+				{
+					unlocked_streams.remove(&state_id);
+				}
+				else
+				{
+					error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
+				}
+
 				break;
 			}
 			activity = true;
@@ -186,24 +213,6 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState )
 			thread::sleep(time::Duration::from_millis(10));
 		}
 	}
-		
-}
-
-fn command(mut global_state : globalState)
-{
-	let command_listener = match TcpListener::bind("127.0.0.1:81")
-	{
-		Ok(v) => v,
-		Err(_) => panic!("Failed to open command TCP listener."),
-	};
-	
-	for stream in command_listener.incoming() 
-	{
-		let thread = thread::spawn(move || 
-			{
-				handle_client(stream.expect("Connection failed"), thread_global_state);
-			});
-	}
 }
 
 fn main() 
@@ -211,6 +220,12 @@ fn main()
 	let mut global_state : globalState = globalState::new();
 	
 /* ================== TCP listener ================== */
+
+	let command_global_state = global_state.clone();
+	let command_thread = thread::spawn(move || 
+	{
+		command_client_handler(command_global_state);
+	});
 
 	let tcp_listener = match TcpListener::bind("127.0.0.1:80") 
 	{
@@ -220,18 +235,12 @@ fn main()
 	
 	for stream in tcp_listener.incoming() 
 	{
-		let thread_global_state = global_state.clone();
+		let thread_global_state = global_state.clone();	
 		let thread = thread::spawn(move || 
-			{
-				handle_client(stream.expect("Connection failed"), thread_global_state);
-			});
+		{
+			handle_client(stream.expect("Connection failed"), thread_global_state);
+		});
 	}
-	
-	let command_global_state = global_state.clone();
-	let command_thread = thread::spawn(move || 
-			{
-				command(command_global_state);
-			});
 
 /* ================== UDP listener ================== */
 	/*
