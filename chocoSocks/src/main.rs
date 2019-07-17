@@ -161,6 +161,8 @@ fn handle_client(mut client_stream : TcpStream, mut global_state : globalState)
 			
 			server_client_syn += bytes_received as u32;
 			
+			println!("Syn: {}", server_client_syn);
+			
 			if let Err(_) = client_stream.write(&packet_data[0..bytes_received])
 			{
 				server_stream.shutdown(Shutdown::Both);

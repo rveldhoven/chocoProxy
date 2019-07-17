@@ -123,7 +123,7 @@ impl tcpHeader
 			th_seq : (*seq).to_be(),
 			th_ack: (*ack).to_be(),
 			th_off : 0x50,
-			th_flags : 0x18,
+			th_flags : 0x10, // 0x18
 			th_win : win,
 			th_sum: 0,
 			th_urp: 0,
@@ -176,9 +176,18 @@ fn emit_syn(packet_data : &Vec<u8>, src : &u32, dst : &u32, a_syn : &u32,  b_syn
 	let header_length = (std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>() );
 	let packet_length = (header_length + packet_data.len());
 	
+	let mut dport = 1;
+	let mut sport = 0;
+	
+	if *src == 0
+	{
+		dport = 0;
+		sport = 1;
+	}
+	
 	let eth = ethernetHeader::create_header();
 	let ip = ipHeader::create_header(*src, *dst, packet_length.try_into().unwrap() );
-	let tcp = tcpHeader::create_header_syn(0, 1, a_syn, b_syn, 64000);
+	let tcp = tcpHeader::create_header_syn(sport, dport, a_syn, b_syn, 64000);
 	
 	let ether_data = unsafe{ any_as_u8_slice(&eth) };
 	let ip_data = unsafe{ any_as_u8_slice(&ip) };
@@ -214,10 +223,19 @@ fn emit_syn(packet_data : &Vec<u8>, src : &u32, dst : &u32, a_syn : &u32,  b_syn
 fn emit_ack(packet_data : &Vec<u8>, src : &u32, dst : &u32, a_syn : &u32,  b_syn : &u32, file: &mut File)
 {
 	let ack_number : u32 = *a_syn + packet_data.len() as u32;
-
+	
+	let mut dport = 1;
+	let mut sport = 0;
+	
+	if *src == 0
+	{
+		dport = 0;
+		sport = 1;
+	}
+	
 	let eth = ethernetHeader::create_header();
 	let ip = ipHeader::create_header(*src, *dst, (std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>()).try_into().unwrap() );
-	let tcp = tcpHeader::create_header_ack(1, 0, b_syn, &ack_number, 64000);
+	let tcp = tcpHeader::create_header_ack(sport, dport, b_syn, &ack_number, 64000);
 	
 	let ether_data = unsafe{ any_as_u8_slice(&eth) };
 	let ip_data = unsafe{ any_as_u8_slice(&ip) };
