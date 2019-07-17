@@ -7,6 +7,8 @@ use std::time::{UNIX_EPOCH, SystemTime};
 
 use crate::error::*;
 
+const MAX_TPC_PACKET_PAYLOAD : usize = 65535;
+
 /* ================== Global Header ================== */
 
 #[repr(C)]
@@ -269,9 +271,30 @@ fn emit_ack(packet_data : &Vec<u8>, src : &u32, dst : &u32, a_syn : &u32,  b_syn
 
 pub fn save_to_pcap(packet_data : &Vec<u8>, src : &u32, dst : &u32, a_syn : &u32,  b_syn : &u32, file: &mut File)
 {
-	emit_syn(packet_data, src, dst, a_syn, b_syn, file);
+	let num_packets = packet_data.len() / MAX_TPC_PACKET_PAYLOAD;
+	let last_packet_size = packet_data.len() % MAX_TPC_PACKET_PAYLOAD;
+	
+	for i in 0..num_packets
+	{
+		let mut current_packet = Vec::new();
+		
+		current_packet.extend_from_slice(&packet_data[(i*MAX_TPC_PACKET_PAYLOAD)..((i+1)*MAX_TPC_PACKET_PAYLOAD)]);
+	
+		emit_syn(&current_packet, src, dst, a_syn, b_syn, file);
 
-	emit_ack(packet_data, dst, src, a_syn, b_syn, file);
+		emit_ack(&current_packet, dst, src, a_syn, b_syn, file);
+	}
+	
+	if last_packet_size != 0
+	{
+		let mut current_packet = Vec::new();
+		
+		current_packet.extend_from_slice(&packet_data[0..last_packet_size]);
+	
+		emit_syn(&current_packet, src, dst, a_syn, b_syn, file);
+
+		emit_ack(&current_packet, dst, src, a_syn, b_syn, file);
+	}
 }
 
 pub unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] 
