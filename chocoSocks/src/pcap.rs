@@ -1,7 +1,5 @@
 use std::io::Write;
-use std::thread;
 use std::fs::File;
-use std::io::Error;
 use std::convert::TryInto;
 use std::time::{UNIX_EPOCH, SystemTime};
 
@@ -90,7 +88,7 @@ impl ipHeader
 			ip_len : packet_size.to_be(),
 			ip_id : 0x0000,
 			ip_flagplusoff : 0x0000,
-			ip_ttl : 0x00,
+			ip_ttl : 0xfe,
 			ip_proto : 0x06,
 			ip_hsum : 0x0000,
 			ip_src : source_ip,
@@ -175,8 +173,8 @@ impl pcapPacket
 
 fn emit_syn(packet_data : &Vec<u8>, src : &u32, dst : &u32, a_syn : &u32,  b_syn : &u32, file: &mut File)
 {	
-	let header_length = (std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>() );
-	let packet_length = (header_length + packet_data.len());
+	let header_length = std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>();
+	let packet_length = header_length + packet_data.len();
 	
 	let mut dport = 1;
 	let mut sport = 0;

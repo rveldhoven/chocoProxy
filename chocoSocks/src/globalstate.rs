@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-
 /* ================== Global state ================== */
 
 #[repr(C)]
