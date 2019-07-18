@@ -152,7 +152,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		.unwrap()
 		.as_millis()
 		.to_string();
-		
+
 	let state_data = streamState::new(
 		// dummy data
 		littlePacket.ip_address.to_string(),
@@ -162,7 +162,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		"random_pid".to_string(),
 		"random_process_name".to_string(),
 		filename,
-		"random_stream_start".to_string(),
+		state_id.clone(),
 		"yes".to_string(),
 	);
 
@@ -253,6 +253,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 			}
 			activity = true;
 		}
+
 		if activity == false
 		{
 			thread::sleep(time::Duration::from_millis(10));
