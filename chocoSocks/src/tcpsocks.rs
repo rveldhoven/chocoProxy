@@ -152,6 +152,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		.unwrap()
 		.as_millis()
 		.to_string();
+		
 	let state_data = streamState::new(
 		// dummy data
 		littlePacket.ip_address.to_string(),
