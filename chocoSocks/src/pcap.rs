@@ -297,6 +297,7 @@ pub fn save_to_pcap(
 {
 	let num_packets = packet_data.len() / MAX_TPC_PACKET_PAYLOAD;
 	let last_packet_size = packet_data.len() % MAX_TPC_PACKET_PAYLOAD;
+	let mut real_a_syn : u32 = *a_syn;
 
 	for i in 0..num_packets
 	{
@@ -306,9 +307,11 @@ pub fn save_to_pcap(
 			&packet_data[(i * MAX_TPC_PACKET_PAYLOAD)..((i + 1) * MAX_TPC_PACKET_PAYLOAD)],
 		);
 
-		emit_syn(&current_packet, src, dst, a_syn, b_syn, file);
+		emit_syn(&current_packet, src, dst, &real_a_syn, b_syn, file);
 
-		emit_ack(&current_packet, dst, src, a_syn, b_syn, file);
+		emit_ack(&current_packet, dst, src, &real_a_syn, b_syn, file);
+		
+		real_a_syn = real_a_syn.wrapping_add(MAX_TPC_PACKET_PAYLOAD as u32);
 	}
 
 	if last_packet_size != 0
@@ -317,9 +320,9 @@ pub fn save_to_pcap(
 
 		current_packet.extend_from_slice(&packet_data[0..last_packet_size]);
 
-		emit_syn(&current_packet, src, dst, a_syn, b_syn, file);
+		emit_syn(&current_packet, src, dst, real_a_syn, b_syn, file);
 
-		emit_ack(&current_packet, dst, src, a_syn, b_syn, file);
+		emit_ack(&current_packet, dst, src, real_a_syn, b_syn, file);
 	}
 }
 
