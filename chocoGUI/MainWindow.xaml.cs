@@ -68,5 +68,16 @@ namespace chocoGUI
                     tcp_stream_view.Items.Add(stream_item); 
             }
         }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void OpenStreamButton_Click(object send, RoutedEventArgs e)
+        {
+            var stream_window = new StreamWindow();
+            stream_window.Show();
+        }
     }
 }

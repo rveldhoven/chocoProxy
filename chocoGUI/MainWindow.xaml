@@ -15,8 +15,8 @@
                     <ListView x:Name="tcp_stream_view" Height="365" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
                         <ListView.Resources>
                             <ContextMenu x:Key="tcp_stream_menu">
-                                <MenuItem Header="Open pcap" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
-                                <MenuItem Header="Save pcap" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                                <MenuItem Header="Open stream" Click="OpenStreamButton_Click"  Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                                <MenuItem Header="Save stream" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
                                 <MenuItem Header="Close connection" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
                             </ContextMenu>
                         </ListView.Resources>
