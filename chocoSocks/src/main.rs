@@ -44,12 +44,14 @@ fn main()
 {
 	let mut global_state: globalState = globalState::new();
 
-	/* ================== TCP listener ================== */
+	/* ================== Command listener ================== */
 
-	let command_global_state = global_state.clone();
+	let global_state_clone = global_state.clone();
 	let command_thread = thread::spawn(move || {
-		command_client_handler(command_global_state);
+		command_client_handler(global_state_clone);
 	});
+	
+	/* ================== TCP listener ================== */
 
 	let tcp_listener = match TcpListener::bind("127.0.0.1:80")
 	{

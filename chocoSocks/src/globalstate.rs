@@ -6,7 +6,10 @@ use std::{
 	},
 };
 
-/* ================== Global state ================== */
+use serde::{Deserialize, Serialize};
+use serde_json::Result;
+
+/* ================== Connection global state ================== */
 
 #[repr(C)]
 pub struct streamState
@@ -62,6 +65,46 @@ impl globalState
 	{
 		globalState {
 			tcp_streams: Arc::new(Mutex::new(HashMap::new())),
+		}
+	}
+}
+
+/* ================== Command global state ================== */
+
+#[repr(C)]
+#[derive(Serialize, Deserialize)]
+pub struct commandStruct
+{
+	pub command: String,
+	params: Vec<Vec<u8>>,
+}
+
+impl commandStruct
+{
+	pub fn new(
+		command: String,
+		params: Vec<Vec<u8>>,
+	) -> commandStruct
+	{
+		commandStruct {
+			command,
+			params,
+		}
+	}
+}
+
+#[derive(Clone)]
+pub struct commandState
+{
+	pub commands: Arc<Mutex<HashMap<String, commandStruct>>>,
+}
+
+impl commandState
+{
+	pub fn new() -> commandState
+	{
+		commandState {
+			commands: Arc::new(Mutex::new(HashMap::new())),
 		}
 	}
 }

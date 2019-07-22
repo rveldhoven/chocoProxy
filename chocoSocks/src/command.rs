@@ -26,7 +26,8 @@ use crate::{
 	pcap::*,
 };
 
-fn handle_command_client(mut command_stream: TcpStream, mut global_state: globalState)
+
+fn handle_command_client(mut command_stream: TcpStream, mut global_state: globalState, mut command_state: commandState)
 {
 	let mut packet_data: [u8; 16192] = [0; 16192];
 
@@ -56,11 +57,22 @@ fn handle_command_client(mut command_stream: TcpStream, mut global_state: global
 				return;
 			}
 		};
-	}
+		
+		let command_global_state = global_state.clone();
+		
+		let command_struct : commandStruct = serde_json::from_str(string_command).unwrap();
+		match command_struct.command.as_ref()
+		{
+			"active_streams" => active_streams(command_global_state), 
+			"repeat_packet" => repeat_packet(command_global_state),
+			_ => println!("Unknown command."),
+		}
+	} 
 }
 
 pub fn command_client_handler(mut global_state: globalState)
 {
+	let mut command_state: commandState = commandState::new(); 
 	let command_listener = match TcpListener::bind("127.0.0.1:81")
 	{
 		Ok(v) => v,
@@ -70,8 +82,22 @@ pub fn command_client_handler(mut global_state: globalState)
 	for stream in command_listener.incoming()
 	{
 		let thread_global_state = global_state.clone();
+		let thread_command_state = command_state.clone();
 		let thread = thread::spawn(move || {
-			handle_command_client(stream.expect("Connection failed"), thread_global_state);
+			handle_command_client(stream.expect("Connection failed"), thread_global_state, thread_command_state);
 		});
 	}
+}
+
+/* ================== Command implementation ================== */
+
+fn active_streams(mut global_state: globalState)
+{
+
+}
+
+//fn repeat_packet(mut repeater_stream: TcpStream, mut global_state: globalState)
+fn repeat_packet(mut global_state: globalState)
+{
+	
 }
