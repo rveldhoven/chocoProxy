@@ -16,28 +16,25 @@ using System.Windows.Threading;
 
 namespace chocoGUI
 {
+    static class object_helper
+    {
+        public static object get_object_value(this object obj, string name)
+        {
+            return obj.GetType().GetProperty(name).GetValue(obj, null);
+        }
+    }
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
+    /// 
     public partial class MainWindow : Window
     {
-        public DispatcherTimer ui_dispatcher_timer = new DispatcherTimer() ;
-
+        public DispatcherTimer ui_dispatcher_timer = new DispatcherTimer();
 
         public MainWindow()
         {
             InitializeComponent();
-
-            cGlobalState.background_thread_start();
-
-            ui_dispatcher_timer.Tick += new EventHandler(ui_update_tick);
-            ui_dispatcher_timer.Interval = new TimeSpan(0, 0, 1);
-            ui_dispatcher_timer.Start();
-        }
-
-        private void ui_update_tick(object sender, EventArgs e)
-        {
-            var tcp_streams = cGlobalState.ui_tcp_streams_get();
 
             var gridView = new GridView();
 
@@ -51,6 +48,18 @@ namespace chocoGUI
 
             tcp_stream_view.View = gridView;
 
+
+            cGlobalState.background_thread_start();
+
+            ui_dispatcher_timer.Tick += new EventHandler(ui_update_tick);
+            ui_dispatcher_timer.Interval = new TimeSpan(0, 0, 1);
+            ui_dispatcher_timer.Start();
+        }
+
+        private void ui_update_tick(object sender, EventArgs e)
+        {
+            var tcp_streams = cGlobalState.ui_tcp_streams_get();
+
             foreach (var tcp_stream in tcp_streams)
             {
                 object stream_item = new
@@ -61,7 +70,8 @@ namespace chocoGUI
                     SourcePort = tcp_stream.source_port,
                     DestinationPort = tcp_stream.destination_port,
                     StreamStart = tcp_stream.stream_start,
-                    ProxyConnected = (tcp_stream.proxy_connected == true ? "yes" : "no")
+                    ProxyConnected = (tcp_stream.proxy_connected == true ? "yes" : "no"),
+                    FileName = tcp_stream.backend_file,
                 };
 
                 if (tcp_stream_view.Items.Contains(stream_item) == false)
@@ -76,7 +86,14 @@ namespace chocoGUI
 
         private void OpenStreamButton_Click(object send, RoutedEventArgs e)
         {
-            var stream_window = new StreamWindow();
+            if (tcp_stream_view.SelectedIndex == -1)
+                return;
+
+            var display_object = tcp_stream_view.SelectedItem;
+
+            string pcap_file = (string)object_helper.get_object_value(display_object, "FileName");
+
+            var stream_window = new StreamWindow(pcap_file);
             stream_window.Show();
         }
     }
