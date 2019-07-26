@@ -1,5 +1,4 @@
-pub fn error_and_exit(file: &str, line: u32, message: &str)
-{
+pub fn error_and_exit(file: &str, line: u32, message: &str) {
 	println!(
 		"{}",
 		"Error in: ".to_string()
