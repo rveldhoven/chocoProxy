@@ -6,17 +6,42 @@ pub mod tcpsocks;
 
 use std::{
 	fs::File,
-	io::{Read, Write},
+	io::{
+		Read,
+		Write,
+	},
 	mem::transmute,
-	net::{IpAddr, Ipv4Addr, Shutdown, SocketAddr, TcpListener, TcpStream, UdpSocket},
-	sync::{Arc, Mutex},
+	net::{
+		IpAddr,
+		Ipv4Addr,
+		Shutdown,
+		SocketAddr,
+		TcpListener,
+		TcpStream,
+		UdpSocket,
+	},
+	sync::{
+		Arc,
+		Mutex,
+	},
 	thread,
-	time::{self, SystemTime, UNIX_EPOCH},
+	time::{
+		self,
+		SystemTime,
+		UNIX_EPOCH,
+	},
 };
 
-use crate::{command::*, error::*, globalstate::*, pcap::*, tcpsocks::*};
+use crate::{
+	command::*,
+	error::*,
+	globalstate::*,
+	pcap::*,
+	tcpsocks::*,
+};
 
-fn main() {
+fn main()
+{
 	let mut global_state: globalState = globalState::new();
 
 	/* ================== Command listener ================== */
@@ -28,12 +53,14 @@ fn main() {
 
 	/* ================== TCP listener ================== */
 
-	let tcp_listener = match TcpListener::bind("127.0.0.1:80") {
+	let tcp_listener = match TcpListener::bind("127.0.0.1:80")
+	{
 		Ok(v) => v,
 		Err(_) => panic!("Failed to open TCP listener."),
 	};
 
-	for stream in tcp_listener.incoming() {
+	for stream in tcp_listener.incoming()
+	{
 		let thread_global_state = global_state.clone();
 		let thread = thread::spawn(move || {
 			handle_tcp_client(stream.expect("Connection failed"), thread_global_state);

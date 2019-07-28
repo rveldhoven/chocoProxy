@@ -1,27 +1,53 @@
 use std::{
 	fs::File,
-	io::{Read, Write},
+	io::{
+		Read,
+		Write,
+	},
 	mem::transmute,
-	net::{IpAddr, Ipv4Addr, Shutdown, SocketAddr, TcpListener, TcpStream, UdpSocket},
-	sync::{Arc, Mutex},
+	net::{
+		IpAddr,
+		Ipv4Addr,
+		Shutdown,
+		SocketAddr,
+		TcpListener,
+		TcpStream,
+		UdpSocket,
+	},
+	sync::{
+		Arc,
+		Mutex,
+	},
 	thread,
-	time::{self, SystemTime, UNIX_EPOCH},
+	time::{
+		self,
+		SystemTime,
+		UNIX_EPOCH,
+	},
 };
 
-use crate::{command::*, error::*, globalstate::*, pcap::*};
+use crate::{
+	command::*,
+	error::*,
+	globalstate::*,
+	pcap::*,
+};
 
 /* ================== SOCKS4 packet ================== */
 
 #[repr(C)]
-struct s4Packet {
+struct s4Packet
+{
 	socks_version: u8,
 	command_type: u8,
 	socks_port: u16,
 	ip_address: Ipv4Addr,
 }
 
-impl s4Packet {
-	fn create_from_bytes(bytes: &[u8; 8]) -> s4Packet {
+impl s4Packet
+{
+	fn create_from_bytes(bytes: &[u8; 8]) -> s4Packet
+	{
 		let mut port: [u8; 2] = [0; 2];
 		let mut ip_address: [u8; 4] = [0; 4];
 
@@ -38,18 +64,23 @@ impl s4Packet {
 	}
 }
 
-pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalState) {
+pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalState)
+{
 	let mut header: [u8; 8] = [0; 8];
-	if let Err(_) = client_stream.read(&mut header) {
+	if let Err(_) = client_stream.read(&mut header)
+	{
 		return;
 	}
 
-	loop {
+	loop
+	{
 		let mut byte: [u8; 1] = [0; 1];
-		if let Err(_) = client_stream.read(&mut byte) {
+		if let Err(_) = client_stream.read(&mut byte)
+		{
 			return;
 		}
-		if byte[0] == 0 {
+		if byte[0] == 0
+		{
 			break;
 		}
 	}
@@ -72,13 +103,16 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		"Connecting to {} on port {}...",
 		littlePacket.ip_address, littlePacket.socks_port
 	);
-	let mut server_stream = match TcpStream::connect(&connection) {
-		Ok(v) => {
+	let mut server_stream = match TcpStream::connect(&connection)
+	{
+		Ok(v) =>
+		{
 			//println!("Connected to the server!");
 			client_stream.write(&[0, 90, 0, 0, 0, 0, 0, 0]).unwrap();
 			v
 		}
-		Err(_) => {
+		Err(_) =>
+		{
 			//println!("Couldn't connect to server...");
 			client_stream.write(&[0, 91, 0, 0, 0, 0, 0, 0]).unwrap();
 			return;
@@ -97,9 +131,11 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		.unwrap()
 		.as_millis();
 	let filename = "stream".to_string() + &timestamp.to_string() + &".pcap".to_string();
-	let mut file = match File::create(&filename) {
+	let mut file = match File::create(&filename)
+	{
 		Ok(v) => v,
-		Err(_) => {
+		Err(_) =>
+		{
 			println!("Could not open file for writing.");
 			return;
 		}
@@ -130,22 +166,28 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		state_id.clone(),
 	);
 
-	if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock() {
+	if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock()
+	{
 		unlocked_streams.insert(state_id.clone(), state_data);
-	} else {
+	}
+	else
+	{
 		error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
 	}
 
 	let mut activity: bool = false;
 
-	loop {
+	loop
+	{
 		activity = false;
-		let bytes_received = match server_stream.read(&mut packet_data) {
+		let bytes_received = match server_stream.read(&mut packet_data)
+		{
 			Ok(v) => v,
 			Err(_) => 0,
 		};
 
-		if bytes_received != 0 {
+		if bytes_received != 0
+		{
 			save_to_pcap(
 				&packet_data[0..bytes_received].to_vec(),
 				&1,
@@ -157,12 +199,16 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 
 			server_client_syn = server_client_syn.wrapping_add(bytes_received as u32);
 
-			if let Err(_) = client_stream.write(&packet_data[0..bytes_received]) {
+			if let Err(_) = client_stream.write(&packet_data[0..bytes_received])
+			{
 				server_stream.shutdown(Shutdown::Both);
 
-				if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock() {
+				if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock()
+				{
 					unlocked_streams.remove(&state_id);
-				} else {
+				}
+				else
+				{
 					error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
 				}
 
@@ -171,12 +217,14 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 			activity = true;
 		}
 
-		let bytes_received = match client_stream.read(&mut packet_data) {
+		let bytes_received = match client_stream.read(&mut packet_data)
+		{
 			Ok(v) => v,
 			Err(_) => 0,
 		};
 
-		if bytes_received != 0 {
+		if bytes_received != 0
+		{
 			save_to_pcap(
 				&packet_data[0..bytes_received].to_vec(),
 				&0,
@@ -188,12 +236,16 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 
 			client_server_syn = client_server_syn.wrapping_add(bytes_received as u32);
 
-			if let Err(_) = server_stream.write(&packet_data[0..bytes_received]) {
+			if let Err(_) = server_stream.write(&packet_data[0..bytes_received])
+			{
 				client_stream.shutdown(Shutdown::Both);
 
-				if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock() {
+				if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock()
+				{
 					unlocked_streams.remove(&state_id);
-				} else {
+				}
+				else
+				{
 					error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
 				}
 
@@ -202,7 +254,8 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 			activity = true;
 		}
 
-		if activity == false {
+		if activity == false
+		{
 			thread::sleep(time::Duration::from_millis(10));
 		}
 	}
