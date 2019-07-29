@@ -10,7 +10,7 @@
     <Grid>
         <TabControl>
             <TabItem Header="Packet view">
-                <TabControl>
+                <TabControl Name="stream_window_tabs">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition ></RowDefinition>
@@ -19,7 +19,7 @@
                     <ListView x:Name="packet_stream_view" Grid.Row="0" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" MouseUp="Packet_stream_view_MouseUp">
                         <ListView.Resources>
                             <ContextMenu x:Key="packet_stream_menu">
-                                <MenuItem Header="Send to repeater" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                                    <MenuItem Header="Send to repeater" Click="SendToRepeater_Click" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
                             </ContextMenu>
                         </ListView.Resources>
                         <ListView.ItemContainerStyle>
@@ -36,7 +36,7 @@
                 </TabControl>
             </TabItem>
             <TabItem Header="Repeater">
-                <TabControl>
+                <TabControl Name="repeater_tab">
                 </TabControl>
             </TabItem>
         </TabControl>
