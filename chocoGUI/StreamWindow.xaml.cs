@@ -63,10 +63,10 @@ namespace chocoGUI
                 {
                     var eth_packet = PacketDotNet.Packet.ParsePacket(capture.LinkLayerType, capture.Data);
 
-                    _packet_bytes.Add(capture.Data.ToList());
-
                     PacketDotNet.IPPacket ip_packet = eth_packet.Extract<PacketDotNet.IPPacket>();
                     PacketDotNet.TcpPacket tcp_packet = eth_packet.Extract<PacketDotNet.TcpPacket>();
+
+                    _packet_bytes.Add(tcp_packet.PayloadData.ToList());
 
                     packet_stream_view.View = gridView;
 
