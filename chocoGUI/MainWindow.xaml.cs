@@ -63,6 +63,7 @@ namespace chocoGUI
             ui_dispatcher_timer.Interval = new TimeSpan(0, 0, 1);
             ui_dispatcher_timer.Start();
         }
+        
 
         private void ui_update_tick(object sender, EventArgs e)
         {
