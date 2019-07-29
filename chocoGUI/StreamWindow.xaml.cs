@@ -42,10 +42,16 @@ namespace chocoGUI
             gridView.Columns.Add(new GridViewColumn() { Header = "Source", DisplayMemberBinding = new Binding("Source") });
             gridView.Columns.Add(new GridViewColumn() { Header = "Destination", DisplayMemberBinding = new Binding("Destination") });
             gridView.Columns.Add(new GridViewColumn() { Header = "Payload Length", DisplayMemberBinding = new Binding("PayloadLength") });
-            
+
+            bool has_temp_file_open = false;
+            string temp_file = "";
             try
             {
-                pcap_device = new SharpPcap.LibPcap.CaptureFileReaderDevice(_backend_file);
+                temp_file = cFileUtilities.get_temp_copy(_backend_file);
+
+                has_temp_file_open = true;
+
+                pcap_device = new SharpPcap.LibPcap.CaptureFileReaderDevice(temp_file);
                 pcap_device.Open();
 
                 RawCapture capture;
@@ -76,11 +82,23 @@ namespace chocoGUI
             }
             catch(Exception e)
             {
+                if (has_temp_file_open == true)
+                {
+                    cFileUtilities.remove_temp_copy(temp_file);
+                    has_temp_file_open = false;
+                }
+
                 MessageBox.Show("Error: " + e.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
             if(pcap_device != null)
                 pcap_device.Close();
+
+            if (has_temp_file_open == true)
+            {
+                cFileUtilities.remove_temp_copy(temp_file);
+                has_temp_file_open = false;
+            }
         }
 
         private void ui_update_tick(object sender, EventArgs e)

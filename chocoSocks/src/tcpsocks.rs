@@ -143,7 +143,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 	
 
 	
-	let mut file = match OpenOptions::new().write(true).create_new(true).share_mode( FILE_SHARE_READ | FILE_SHARE_WRITE ).open(&filename) //File::create(&filename)
+	let mut file = match File::create(&filename)
 	{
 		Ok(v) => v,
 		Err(_) =>
