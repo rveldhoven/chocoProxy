@@ -4,13 +4,19 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:chocoGUI"
+        xmlns:control="clr-namespace:WpfHexaEditor;assembly=WPFHexaEditor"
         mc:Ignorable="d"
-        Title="StreamWindow" Height="450" Width="800">
+        Title="TCP stream" Height="450" Width="800">
     <Grid>
         <TabControl>
             <TabItem Header="Packet view">
                 <TabControl>
-                    <ListView x:Name="packet_stream_view" Height="365" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition ></RowDefinition>
+                            <RowDefinition></RowDefinition>
+                        </Grid.RowDefinitions>
+                    <ListView x:Name="packet_stream_view" Grid.Row="0" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" MouseUp="Packet_stream_view_MouseUp">
                         <ListView.Resources>
                             <ContextMenu x:Key="packet_stream_menu">
                                 <MenuItem Header="Send to repeater" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
@@ -24,12 +30,13 @@
                             </Style>
                         </ListView.ItemContainerStyle>
                     </ListView>
+                        <control:HexEditor Name="packet_hex_editor" Grid.Row="1">
+                        </control:HexEditor>
+                    </Grid>
                 </TabControl>
             </TabItem>
             <TabItem Header="Repeater">
                 <TabControl>
-                    <TabItem Header="Packet1">
-                    </TabItem>
                 </TabControl>
             </TabItem>
         </TabControl>
