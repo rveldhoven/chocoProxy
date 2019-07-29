@@ -192,6 +192,15 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 	loop
 	{
 		activity = false;
+
+		if let Ok(mut unlocked_command) = global_state.commands.lock()
+		{
+			match unlocked_command.get(&state_id) {
+				Some(command_struct) => println!("{}", command_struct.command),
+				None => continue
+			}
+		}
+		
 		let bytes_received = match server_stream.read(&mut packet_data)
 		{
 			Ok(v) => v,

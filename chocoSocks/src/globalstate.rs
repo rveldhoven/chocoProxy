@@ -62,27 +62,27 @@ impl streamState
 
 #[repr(C)]
 #[derive(Serialize, Deserialize)]
-pub struct commandStruct
+pub struct commandState
 {
 	pub command: String,
-	parameters: Vec<Vec<u8>>,
+	pub parameters: Vec<Vec<u8>>,
 }
 
-impl commandStruct
+impl commandState
 {
-	pub fn new(command: String, parameters: Vec<Vec<u8>>) -> commandStruct
+	pub fn new(command: String, parameters: Vec<Vec<u8>>) -> commandState
 	{
-		commandStruct {
+		commandState {
 			command,
 			parameters,
 		}
 	}
 }
-
+/*
 #[derive(Clone)]
 pub struct commandState
 {
-	pub commands: Arc<Mutex<HashMap<String, commandStruct>>>,
+	
 }
 
 impl commandState
@@ -94,11 +94,12 @@ impl commandState
 		}
 	}
 }
-
+*/
 #[derive(Clone)]
 pub struct globalState
 {
 	pub tcp_streams: Arc<Mutex<HashMap<String, streamState>>>,
+	pub commands: Arc<Mutex<HashMap<String, commandState>>>,
 	pub argv_options : HashMap<String, String>,
 }
 
@@ -108,6 +109,7 @@ impl globalState
 	{
 		globalState {
 			tcp_streams: Arc::new(Mutex::new(HashMap::new())),
+			commands: Arc::new(Mutex::new(HashMap::new())),
 			argv_options : HashMap::new(),
 		}
 	}
