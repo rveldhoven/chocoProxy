@@ -8,8 +8,33 @@
         Title="chocoGUI" Height="450" Width="800">
     <Grid>
         <TabControl>
-            <TabItem Header="Main settings">
-           </TabItem>
+            <TabItem Header="Main menu">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="250"/>
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button Name="inject_button" Content="Inject proxy DLL" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,39,0,0" Width="230" Click="Inject_button_Click"></Button>
+                    <Button Name="create_proxy_button" Content="Start new proxy" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,14,0,0" Width="230" Click="Create_proxy_button_Click"></Button>
+                    
+                    <ListView Grid.Column="2" x:Name="proxy_view" Height="365" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" Margin="0,14,0.333,13.667">
+                        <ListView.Resources>
+                            <ContextMenu x:Key="proxy_menu">
+                                <MenuItem Header="Terminate proxy" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                                <MenuItem Header="Edit metadata" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                            </ContextMenu>
+                        </ListView.Resources>
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="{x:Type ListViewItem}">
+                                <Setter Property="BorderBrush" Value="LightGray" />
+                                <Setter Property="BorderThickness" Value="0,0,1,1" />
+                                <Setter Property="ContextMenu" Value="{StaticResource proxy_menu}" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                    </ListView>
+                </Grid>
+            </TabItem>
             <TabItem Header="TCP streams">
                 <TabControl>
                     <ListView x:Name="tcp_stream_view" Height="365" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">

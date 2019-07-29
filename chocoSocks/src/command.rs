@@ -71,7 +71,7 @@ fn handle_command_client(
 				let mut streams_data = active_streams(command_global_state);
 				let mut streams_string = serde_json::to_string(&streams_data).unwrap();
 				command_stream
-					.write(&streams_string.len().to_ne_bytes())
+					.write(&(streams_string.len() as u32).to_ne_bytes())
 					.unwrap();
 				command_stream.write(&streams_string.as_bytes()).unwrap();
 			}
@@ -84,7 +84,7 @@ fn handle_command_client(
 pub fn command_client_handler(mut global_state: globalState)
 {
 	let mut command_state: commandState = commandState::new();
-	let command_listener = match TcpListener::bind("127.0.0.1:81")
+	let command_listener = match TcpListener::bind(global_state.argv_options["--manager-ip"].clone() + &":".to_string() + &global_state.argv_options["--manager-port"].clone())
 	{
 		Ok(v) => v,
 		Err(_) => panic!("Failed to open command TCP listener."),

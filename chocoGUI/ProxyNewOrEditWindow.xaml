@@ -1,0 +1,21 @@
+﻿<Window x:Class="chocoGUI.ProxyNewOrEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:chocoGUI"
+        mc:Ignorable="d"
+        Title="ProxyNewOrEditWindow" Height="151.042" Width="444.883">
+    <Grid>
+        <Label Margin="8,12,0,0" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="92">Proxy IP:PORT</Label>
+        <TextBox Name="proxy_ip_textbox" Height="20" Margin="171,13,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="205"/>
+        <TextBox Name="proxy_port_textbox" Height="20" Margin="381,13,7,0" VerticalAlignment="Top"/>
+        <Label Margin="8,35,0,0" Height="29" VerticalAlignment="Top" HorizontalAlignment="Left" Width="278">Management IP:PORT</Label>
+        <TextBox Name="management_ip_textbox" Height="20" Margin="171,38,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="205"/>
+        <TextBox Name="management_port_textbox" Height="20" Margin="381,38,7,0" RenderTransformOrigin="0.788,-0.345" VerticalAlignment="Top"/>
+        <TextBox Name="metadata_textbox" Margin="171,63,0,0" RenderTransformOrigin="0.788,-0.345" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" Width="260"/>
+        <Button Content="Ok" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="11,95,0,0" Width="60" Click="Button_Click"></Button>
+        <Button Content="Cancel" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="76,95,0,0" Width="58" RenderTransformOrigin="-0.563,2.394" Click="Button_Click_1"/>
+        <Label Margin="10,58,0,0" Content="Target process:" Height="29" VerticalAlignment="Top" HorizontalAlignment="Left" Width="278"/>
+    </Grid>
+</Window>

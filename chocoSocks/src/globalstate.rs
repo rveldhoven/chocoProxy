@@ -58,22 +58,6 @@ impl streamState
 	}
 }
 
-#[derive(Clone)]
-pub struct globalState
-{
-	pub tcp_streams: Arc<Mutex<HashMap<String, streamState>>>,
-}
-
-impl globalState
-{
-	pub fn new() -> globalState
-	{
-		globalState {
-			tcp_streams: Arc::new(Mutex::new(HashMap::new())),
-		}
-	}
-}
-
 /* ================== Command global state ================== */
 
 #[repr(C)]
@@ -110,3 +94,23 @@ impl commandState
 		}
 	}
 }
+
+#[derive(Clone)]
+pub struct globalState
+{
+	pub tcp_streams: Arc<Mutex<HashMap<String, streamState>>>,
+	pub argv_options : HashMap<String, String>,
+}
+
+impl globalState
+{
+	pub fn new() -> globalState
+	{
+		globalState {
+			tcp_streams: Arc::new(Mutex::new(HashMap::new())),
+			argv_options : HashMap::new(),
+		}
+	}
+}
+
+

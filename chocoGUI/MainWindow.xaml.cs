@@ -36,18 +36,26 @@ namespace chocoGUI
         {
             InitializeComponent();
 
-            var gridView = new GridView();
+            var tcp_gridview = new GridView();
 
-            gridView.Columns.Add(new GridViewColumn() { Header = "Source process", DisplayMemberBinding = new Binding("SourceProcess") });
-            gridView.Columns.Add(new GridViewColumn() { Header = "Source IP", DisplayMemberBinding = new Binding("SourceIP") });
-            gridView.Columns.Add(new GridViewColumn() { Header = "Destination IP", DisplayMemberBinding = new Binding("DestinationIP") });
-            gridView.Columns.Add(new GridViewColumn() { Header = "Source port", DisplayMemberBinding = new Binding("SourcePort") });
-            gridView.Columns.Add(new GridViewColumn() { Header = "Destination port", DisplayMemberBinding = new Binding("DestinationPort") });
-            gridView.Columns.Add(new GridViewColumn() { Header = "Stream start", DisplayMemberBinding = new Binding("StreamStart") });
-            gridView.Columns.Add(new GridViewColumn() { Header = "Proxy connected", DisplayMemberBinding = new Binding("ProxyConnected") });
+            tcp_gridview.Columns.Add(new GridViewColumn() { Header = "Source proxy", DisplayMemberBinding = new Binding("SourceProxy") });
+            tcp_gridview.Columns.Add(new GridViewColumn() { Header = "Source IP", DisplayMemberBinding = new Binding("SourceIP") });
+            tcp_gridview.Columns.Add(new GridViewColumn() { Header = "Destination IP", DisplayMemberBinding = new Binding("DestinationIP") });
+            tcp_gridview.Columns.Add(new GridViewColumn() { Header = "Source port", DisplayMemberBinding = new Binding("SourcePort") });
+            tcp_gridview.Columns.Add(new GridViewColumn() { Header = "Destination port", DisplayMemberBinding = new Binding("DestinationPort") });
+            tcp_gridview.Columns.Add(new GridViewColumn() { Header = "Stream start", DisplayMemberBinding = new Binding("StreamStart") });
+            tcp_gridview.Columns.Add(new GridViewColumn() { Header = "Proxy connected", DisplayMemberBinding = new Binding("ProxyConnected") });
 
-            tcp_stream_view.View = gridView;
+            tcp_stream_view.View = tcp_gridview;
 
+            var proxy_gridview = new GridView();
+
+            proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Proxy metadata", DisplayMemberBinding = new Binding("ProxyMetadata") });
+            proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Proxy address", DisplayMemberBinding = new Binding("ProxyAddress") });
+            proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Management address", DisplayMemberBinding = new Binding("MangementAddress") });
+            proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Pcap directory", DisplayMemberBinding = new Binding("PcapDirectory") });
+
+            proxy_view.View = proxy_gridview;
 
             cGlobalState.background_thread_start();
 
@@ -64,7 +72,7 @@ namespace chocoGUI
             {
                 object stream_item = new
                 {
-                    SourceProcess = tcp_stream.source_process_name,
+                    SourceProxy = tcp_stream.source_process_name,
                     SourceIP = tcp_stream.source_ip,
                     DestinationIP = tcp_stream.destination_ip,
                     SourcePort = tcp_stream.source_port,
@@ -75,9 +83,52 @@ namespace chocoGUI
                 };
 
                 if (tcp_stream_view.Items.Contains(stream_item) == false)
-                    tcp_stream_view.Items.Add(stream_item); 
+                    tcp_stream_view.Items.Add(stream_item);
             }
-        }
+
+            var running_proxies = cGlobalState.ui_proxy_process_get();
+
+            List<object> current_proxy_objects = new List<object>();
+
+            foreach (var proxy_process in running_proxies)
+            {
+                object stream_item = new
+                {
+                    ProxyMetadata = proxy_process.proxy_process_metadata,
+                    ProxyAddress = proxy_process.proxy_ip + ":" + proxy_process.proxy_port,
+                    MangementAddress = proxy_process.management_ip + ":" + proxy_process.management_port,
+                    PcapDirectory = proxy_process.pcap_dir,
+                };
+
+                current_proxy_objects.Add(stream_item);
+
+                if (proxy_view.Items.Contains(stream_item) == false)
+                    proxy_view.Items.Add(stream_item);
+            }
+
+            bool changes = true;
+
+            while(changes == true)
+            {
+                changes = false;
+
+                int remove_index = 0;
+
+                for (remove_index = 0; remove_index < proxy_view.Items.Count; remove_index++)
+                {
+                    if (current_proxy_objects.Contains(proxy_view.Items[remove_index]) == false)
+                    {
+                        changes = true;
+                        break;
+                    }
+                }
+
+                if (changes == false)
+                    break;
+
+                proxy_view.Items.RemoveAt(remove_index);
+            }
+        }   
 
         private void MenuItem_Click(object sender, RoutedEventArgs e)
         {
@@ -95,6 +146,27 @@ namespace chocoGUI
 
             var stream_window = new StreamWindow(pcap_file);
             stream_window.Show();
+        }
+
+        private void Inject_button_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void Create_proxy_button_Click(object sender, RoutedEventArgs e)
+        {
+            var proxy_edit_window = new ProxyNewOrEditWindow();
+
+            bool? result = proxy_edit_window.ShowDialog();
+
+            if (result.HasValue == false)
+                return;
+
+            if (proxy_edit_window.was_ok == false)
+                return;
+
+            if (cGlobalState.ui_proxy_process_start(proxy_edit_window.m_data, proxy_edit_window.ip, proxy_edit_window.port, proxy_edit_window.m_ip, proxy_edit_window.m_port) == false)
+                MessageBox.Show("Failed to start proxy process", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }
