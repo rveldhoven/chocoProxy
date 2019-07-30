@@ -29,5 +29,28 @@ namespace chocoGUI
         {
             return new System.IO.FileInfo(Filename).Length;
         }
+
+        public static string get_temp_copy(string Filename)
+        {
+            string temp_file = System.IO.Path.GetTempPath() + Guid.NewGuid().ToString() + ".pcap";
+            
+            File.Copy(Filename, temp_file);
+            
+            return temp_file;
+        }
+
+        public static bool remove_temp_copy(string temp_filename)
+        {
+            try
+            {
+                File.Delete(temp_filename);
+            }
+            catch (Exception e)
+            {
+                return false;
+            }
+
+            return true;
+        }
     }
 }

@@ -194,6 +194,25 @@ namespace chocoGUI
 
         public static bool ui_proxy_process_start(string metadata, string ip, string port, string m_ip, string m_port)
         {
+            bool metadata_unique = false;
+
+            lock (_proxy_process_mutex)
+            {
+                foreach (cProxyProcess process in _proxy_process_list)
+                {
+                    if(process.proxy_process_metadata == metadata)
+                    {
+                        metadata_unique = true;
+                        break;
+                    }
+                }
+            }
+
+            if(metadata_unique == true || metadata == "")
+            {
+                throw new Exception("Error: metadata is not unique, metadata must be set and unique");
+            }
+
             Process new_proxy = new Process();
 
             string pcap_dir = "proxy_" + ip + "_" + port + "m_" + m_ip + "_" + m_port;
@@ -272,6 +291,35 @@ namespace chocoGUI
             process.proxy_management_stream.Close();
 
             return true;
+        }
+
+        public static void ui_proxy_repeat_packet(string stream_id, List<byte> packet_bytes)
+        {
+            string proxy_management_parent = "";
+
+            List<cTCPStream> tcp_streams = ui_tcp_streams_get();
+
+            foreach (var tcp_stream in tcp_streams)
+            {
+                if (tcp_stream.stream_start == stream_id)
+                {
+                    proxy_management_parent = tcp_stream.source_process_name;
+                    break;
+                }
+            }
+
+            if (proxy_management_parent == "")
+                throw new Exception("Error: packet can't be repeated because the connection is belongs to has closed");
+
+            List<cProxyProcess> proxy_processes = ui_proxy_process_get();
+
+            foreach(var proxy_process in proxy_processes)
+            {
+                if (proxy_process.proxy_process_metadata == proxy_management_parent)
+                {
+                    // Send command;
+                }
+            }
         }
 
         #endregion

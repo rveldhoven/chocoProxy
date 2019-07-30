@@ -63,7 +63,6 @@ namespace chocoGUI
             ui_dispatcher_timer.Interval = new TimeSpan(0, 0, 1);
             ui_dispatcher_timer.Start();
         }
-        
 
         private void ui_update_tick(object sender, EventArgs e)
         {
@@ -144,8 +143,9 @@ namespace chocoGUI
             var display_object = tcp_stream_view.SelectedItem;
 
             string pcap_file = (string)object_helper.get_object_value(display_object, "FileName");
+            string stream_id = (string)object_helper.get_object_value(display_object, "StreamStart");
 
-            var stream_window = new StreamWindow(pcap_file);
+            var stream_window = new StreamWindow(pcap_file, stream_id);
             stream_window.Show();
         }
 
@@ -166,8 +166,15 @@ namespace chocoGUI
             if (proxy_edit_window.was_ok == false)
                 return;
 
-            if (cGlobalState.ui_proxy_process_start(proxy_edit_window.m_data, proxy_edit_window.ip, proxy_edit_window.port, proxy_edit_window.m_ip, proxy_edit_window.m_port) == false)
-                MessageBox.Show("Failed to start proxy process", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            try
+            {
+                if (cGlobalState.ui_proxy_process_start(proxy_edit_window.m_data, proxy_edit_window.ip, proxy_edit_window.port, proxy_edit_window.m_ip, proxy_edit_window.m_port) == false)
+                    MessageBox.Show("Failed to start proxy process", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch (Exception error)
+            {
+                MessageBox.Show(error.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }
