@@ -317,9 +317,31 @@ namespace chocoGUI
             {
                 if (proxy_process.proxy_process_metadata == proxy_management_parent)
                 {
-                    // Send command;
+                    byte[] bytes_stream_id = Encoding.UTF8.GetBytes(stream_id);
+
+                    List<List<byte>> command_parameters = new List<List<byte>>();
+
+                    command_parameters.Add(bytes_stream_id.ToList());
+                    command_parameters.Add(packet_bytes);
+
+                    cCommand repeat_packet_command = new cCommand
+                    {
+                        command = "repeat_packet",
+                        parameters = command_parameters,
+                    };
+
+                    string json_command = JsonConvert.SerializeObject(repeat_packet_command);
+
+                    lock (_proxy_process_mutex)
+                    {
+                        proxy_process.proxy_management_stream.Client.Send(Encoding.UTF8.GetBytes(json_command));
+                    }
+
+                    return;
                 }
             }
+
+            throw new Exception("Error: packet can't be repeated because the connection is belongs to has closed");
         }
 
         #endregion

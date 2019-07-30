@@ -167,10 +167,10 @@ namespace chocoGUI
 
             send_button.Click += new RoutedEventHandler(delegate (object inner_sender, RoutedEventArgs inner_e)
             {
-                List<byte> send_bytes = new List<byte>();
-                
-                
+                byte[] buffer = new byte[hex_editor.Stream.Length];
+                hex_editor.Stream.Read(buffer, 0, (int)hex_editor.Stream.Length);
 
+                cGlobalState.ui_proxy_repeat_packet(_stream_id, buffer.ToList());
             });
 
             Grid.SetRow(send_button, 1);
