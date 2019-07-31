@@ -26,10 +26,7 @@ use crate::{
 	pcap::*,
 };
 
-fn handle_command_client(
-	mut command_stream: TcpStream,
-	mut global_state: globalState
-)
+fn handle_command_client(mut command_stream: TcpStream, mut global_state: globalState)
 {
 	let mut packet_data: [u8; 16192] = [0; 16192];
 
@@ -74,10 +71,10 @@ fn handle_command_client(
 					.unwrap();
 				command_stream.write(&streams_string.as_bytes()).unwrap();
 			}
-			"repeat_packet" => 
+			"repeat_packet" =>
 			{
 				repeat_packet(command_global_state, command_state.parameters);
-			},
+			}
 			_ => println!("Unknown command."),
 		}
 	}
@@ -85,7 +82,11 @@ fn handle_command_client(
 
 pub fn command_client_handler(mut global_state: globalState)
 {
-	let command_listener = match TcpListener::bind(global_state.argv_options["--manager-ip"].clone() + &":".to_string() + &global_state.argv_options["--manager-port"].clone())
+	let command_listener = match TcpListener::bind(
+		global_state.argv_options["--manager-ip"].clone()
+			+ &":".to_string()
+			+ &global_state.argv_options["--manager-port"].clone(),
+	)
 	{
 		Ok(v) => v,
 		Err(_) => panic!("Failed to open command TCP listener."),
@@ -95,10 +96,7 @@ pub fn command_client_handler(mut global_state: globalState)
 	{
 		let thread_global_state = global_state.clone();
 		let thread = thread::spawn(move || {
-			handle_command_client(
-				stream.expect("Connection failed"),
-				thread_global_state,
-			);
+			handle_command_client(stream.expect("Connection failed"), thread_global_state);
 		});
 	}
 }
@@ -122,12 +120,13 @@ fn active_streams(mut global_state: globalState) -> Vec<streamState>
 	vector_streams
 }
 
-fn repeat_packet(mut global_state: globalState, mut parameters: Vec<Vec<u8>>) 
+fn repeat_packet(mut global_state: globalState, mut parameters: Vec<Vec<u8>>)
 {
-	let stream_id : String = String::from_utf8(parameters[0].clone()).expect("Invalid UTF8 in stream ID.");
+	let stream_id: String =
+		String::from_utf8(parameters[0].clone()).expect("Invalid UTF8 in stream ID.");
 	parameters.remove(0);
 	let command_data = commandState::new(String::from("repeat_packet"), parameters);
-	
+
 	if let Ok(mut unlocked_command) = global_state.commands.lock()
 	{
 		unlocked_command.insert(stream_id, command_data);

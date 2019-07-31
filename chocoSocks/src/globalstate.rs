@@ -82,7 +82,7 @@ impl commandState
 #[derive(Clone)]
 pub struct commandState
 {
-	
+
 }
 
 impl commandState
@@ -100,7 +100,7 @@ pub struct globalState
 {
 	pub tcp_streams: Arc<Mutex<HashMap<String, streamState>>>,
 	pub commands: Arc<Mutex<HashMap<String, commandState>>>,
-	pub argv_options : HashMap<String, String>,
+	pub argv_options: HashMap<String, String>,
 }
 
 impl globalState
@@ -110,9 +110,7 @@ impl globalState
 		globalState {
 			tcp_streams: Arc::new(Mutex::new(HashMap::new())),
 			commands: Arc::new(Mutex::new(HashMap::new())),
-			argv_options : HashMap::new(),
+			argv_options: HashMap::new(),
 		}
 	}
 }
-
-

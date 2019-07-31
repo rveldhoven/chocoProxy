@@ -1,7 +1,7 @@
 use std::{
 	fs::{
 		File,
-		OpenOptions
+		OpenOptions,
 	},
 	io::{
 		Read,
@@ -31,9 +31,9 @@ use std::{
 
 use std::os::windows::fs::OpenOptionsExt;
 
-const FILE_SHARE_READ : u32 = 1;
-const FILE_SHARE_WRITE : u32 = 2;
-const FILE_SHARE_DELETE : u32 = 4;
+const FILE_SHARE_READ: u32 = 1;
+const FILE_SHARE_WRITE: u32 = 2;
+const FILE_SHARE_DELETE: u32 = 4;
 
 use crate::{
 	command::*,
@@ -140,7 +140,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		.unwrap()
 		.as_millis();
 	let filename = "stream".to_string() + &timestamp.to_string() + &".pcap".to_string();
-	
+
 	let mut file = match File::create(&filename)
 	{
 		Ok(v) => v,
@@ -199,7 +199,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 				None => (),
 			}
 		}
-		
+
 		let bytes_received = match server_stream.read(&mut packet_data)
 		{
 			Ok(v) => v,
