@@ -40,7 +40,13 @@ namespace chocoGUI
     {
         public string command { get; set; }
         public List<List<byte>> parameters { get; set; }
-    }  
+    }
+
+    public class cPythonScript
+    {
+        public string script { get; set; }
+        public string direction { get; set; }
+    }
 
     static class cGlobalState
     {
@@ -50,24 +56,160 @@ namespace chocoGUI
         private static object _proxy_process_mutex = new object();
         private static List<cProxyProcess> _proxy_process_list = new List<cProxyProcess>();
 
+        // TODO: refactor this object in a class.
+        private static object _script_list_mutex = new object();
+        private static Dictionary<string, Dictionary<string, Dictionary<string, cPythonScript>>> _script_list = new Dictionary<string, Dictionary<string, Dictionary<string, cPythonScript>>>();
+
         private static Thread _background_thread;
         private static bool _background_is_running = false;
 
+        #region background helpers
+
+        private static string send_and_receive_command(cProxyProcess client, string command)
+        {
+            byte[] receive_buffer = new byte[10 * 65535];
+            List<byte> receive_buffer_final = new List<byte>();
+
+            byte[] receive_command_size = new byte[4];
+
+            client.proxy_management_stream.Client.Send(Encoding.UTF8.GetBytes(command));
+            client.proxy_management_stream.Client.Receive(receive_command_size);
+
+            int expected_command_size = BitConverter.ToInt32(receive_command_size, 0);
+            int received_bytes = 0;
+
+            receive_buffer_final.Clear();
+
+            while (received_bytes < expected_command_size)
+            {
+                int received_t = client.proxy_management_stream.Client.Receive(receive_buffer);
+                receive_buffer_final.AddRange(receive_buffer.Take(received_t));
+                received_bytes += received_t;
+            }
+
+            string string_received = Encoding.UTF8.GetString(receive_buffer_final.ToArray());
+
+            return string_received;
+        }
+
+        private static void send_command(cProxyProcess client, string command)
+        {
+            client.proxy_management_stream.Client.Send(Encoding.UTF8.GetBytes(command));
+        }
+
+        private static string stream_id_to_proxy_id(string stream_id)
+        {
+            string proxy_management_parent = "";
+
+            List<cTCPStream> tcp_streams = ui_tcp_streams_get();
+
+            foreach (var tcp_stream in tcp_streams)
+            {
+                if (tcp_stream.stream_start == stream_id)
+                {
+                    proxy_management_parent = tcp_stream.source_process_name;
+                    break;
+                }
+            }
+
+            if (proxy_management_parent == "")
+                throw new Exception("Error: stream_id is no longer linked to proxy");
+
+            List<cProxyProcess> proxy_processes = ui_proxy_process_get();
+
+            foreach (var proxy_process in proxy_processes)
+            {
+                if (proxy_process.proxy_process_metadata == proxy_management_parent)
+                {
+                    return proxy_process.proxy_name;
+                }
+            }
+
+            throw new Exception("Error: stream_id is no longer linked to proxy");
+        }
+
+        #endregion
+
         #region background setters
 
-        private static void background_main()
+
+
+        private static void background_update_streams()
         {
-            cCommand command = new cCommand
+            cCommand active_streams_struct = new cCommand
             {
                 command = "active_streams",
                 parameters = new List<List<byte>>(),
             };
 
-            string json_command = JsonConvert.SerializeObject(command);
-            byte[] bytes_command = new byte[10*65535];
-            List<byte> bytes_command_appended = new List<byte>();
-            byte[] number_of_bytes = new byte[4];
+            string active_streams_command = JsonConvert.SerializeObject(active_streams_struct);
+
+            lock (_tcp_streams_mutex)
+            {
+                _tcp_streams.Clear();
+            }
+
+            List<cProxyProcess> proxy_list = ui_proxy_process_get();
+
+            foreach (var proxy in proxy_list)
+            {
+                string string_received = send_and_receive_command(proxy, active_streams_command);
+
+                try
+                {
+                    List<cTCPStream> tcp_streams = JsonConvert.DeserializeObject<List<cTCPStream>>(string_received);
+
+                    for (int i = 0; i < tcp_streams.Count; i++)
+                        tcp_streams[i].source_process_name = proxy.proxy_process_metadata;
+
+                    lock (_tcp_streams_mutex)
+                    {
+                        _tcp_streams.AddRange(tcp_streams);
+                    }
+                }
+                catch (Exception e)
+                {
+                    continue;
+                }
+            }
+        }
+
+        private static void background_update_scripts()
+        {
+            cCommand scripts_struct = new cCommand
+            {
+                command = "active_scripts",
+                parameters = new List<List<byte>>(),
+            };
+
+            string scripts_command = JsonConvert.SerializeObject(scripts_struct);
+
+            List<cProxyProcess> proxy_list = ui_proxy_process_get();
+
+            foreach (var proxy in proxy_list)
+            {
+                string string_received = send_and_receive_command(proxy, scripts_command);
+
+                try
+                {
+                    Dictionary<string, Dictionary<string, cPythonScript>> scripts = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, cPythonScript>>>(string_received);
+
+                    lock (_script_list_mutex)
+                    {
+                        _script_list[proxy.proxy_name] = scripts;
+                    }
+                }
+                catch (Exception e)
+                {
+                    continue;
+                }
+            }
+        }
+
+        private static void background_main()
+        {
             int tcp_stream_update_counter = 0;
+            int scripts_update_counter = 5;
             int proxy_provess_update_counter = 0;
 
             while (_background_is_running == true)
@@ -75,50 +217,16 @@ namespace chocoGUI
                 // Updates the view on TCP streams
                 if (tcp_stream_update_counter++ > 10)
                 {
-                    lock(_tcp_streams_mutex)
-                    {
-                        _tcp_streams.Clear();
-                    }
-
                     tcp_stream_update_counter = 0;
 
-                    List<cProxyProcess> proxy_list = ui_proxy_process_get();
+                    background_update_streams();
+                }
 
-                    foreach (var proxy in proxy_list)
-                    {
-                        proxy.proxy_management_stream.Client.Send(Encoding.UTF8.GetBytes(json_command));
-                        proxy.proxy_management_stream.Client.Receive(number_of_bytes);
-                        int expect_bytes = BitConverter.ToInt32(number_of_bytes, 0);
-                        int received_bytes = 0;
+                if (scripts_update_counter++ > 10)
+                {
+                    scripts_update_counter = 0;
 
-                        bytes_command_appended.Clear();
-
-                        while (received_bytes < expect_bytes)
-                        {
-                            int received_t = proxy.proxy_management_stream.Client.Receive(bytes_command);
-                            bytes_command_appended.AddRange(bytes_command.Take(received_t));
-                            received_bytes += received_t;
-                        }
-
-                        string string_received = Encoding.UTF8.GetString(bytes_command_appended.ToArray());
-
-                        try
-                        {
-                            List<cTCPStream> tcp_streams = JsonConvert.DeserializeObject<List<cTCPStream>>(string_received);
-
-                            for (int i = 0; i < tcp_streams.Count; i++)
-                                tcp_streams[i].source_process_name = proxy.proxy_process_metadata;
-
-                            lock (_tcp_streams_mutex)
-                            {
-                                _tcp_streams.AddRange(tcp_streams);
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            continue;
-                        }
-                    }
+                    background_update_scripts();
                 }
 
                 // Updates the view on running proxies
@@ -186,6 +294,16 @@ namespace chocoGUI
             }
 
             return result;
+        }
+
+        public static Dictionary<string, Dictionary<string, cPythonScript>> ui_scripts_scripts_get(string proxy_id)
+        {
+            string proxy_name = stream_id_to_proxy_id(proxy_id);
+
+            lock (_script_list_mutex)
+            {
+                return _script_list[proxy_name];
+            }
         }
 
         #endregion
@@ -344,8 +462,85 @@ namespace chocoGUI
             throw new Exception("Error: packet can't be repeated because the connection is belongs to has closed");
         }
 
-        #endregion
 
+        public static void ui_script_delete_script(string proxy_id, string stream_id, string script_name)
+        {
+            List<cProxyProcess> proxy_processes = ui_proxy_process_get();
+
+            foreach (var proxy_process in proxy_processes)
+            {
+                if (proxy_process.proxy_name == proxy_id)
+                {
+                    byte[] bytes_stream_name = Encoding.UTF8.GetBytes("Global");
+                    byte[] bytes_script_name = Encoding.UTF8.GetBytes(script_name);
+
+                    List<List<byte>> delete_parameters = new List<List<byte>>();
+
+                    delete_parameters.Add(bytes_stream_name.ToList());
+                    delete_parameters.Add(bytes_script_name.ToList());
+
+                    cCommand delete_script_command = new cCommand
+                    {
+                        command = "delete_script",
+                        parameters = delete_parameters,
+                    };
+
+                    string string_delete_command = JsonConvert.SerializeObject(delete_script_command);
+
+                    lock (_proxy_process_mutex)
+                    {
+                        proxy_process.proxy_management_stream.Client.Send(Encoding.UTF8.GetBytes(string_delete_command));
+                    }
+
+                    return;
+                }
+            }
+
+            throw new Exception("Error: script can't be loaded because the proxy process was not found");
+        }
+
+        public static void ui_script_add_script(string proxy_id, string stream_id, string script_name, string script_direction, string script_contents)
+        {
+            List<cProxyProcess> proxy_processes = ui_proxy_process_get();
+
+            foreach (var proxy_process in proxy_processes)
+            {
+                if (proxy_process.proxy_name == proxy_id)
+                {
+                    byte[] bytes_stream_name = Encoding.UTF8.GetBytes("Global");
+                    byte[] bytes_script_name = Encoding.UTF8.GetBytes(script_name);
+                    byte[] bytes_script_direction = Encoding.UTF8.GetBytes(script_direction);
+                    byte[] bytes_script_contents = Encoding.UTF8.GetBytes(script_contents);
+
+                    List<List<byte>> insert_parameters = new List<List<byte>>();
+
+                    insert_parameters.Add(bytes_stream_name.ToList());
+                    insert_parameters.Add(bytes_script_name.ToList());
+                    insert_parameters.Add(bytes_script_direction.ToList());
+                    insert_parameters.Add(bytes_script_contents.ToList());
+
+                    cCommand insert_script_command = new cCommand
+                    {
+                        command = "insert_script",
+                        parameters = insert_parameters,
+                    };
+
+                    string string_insert_command = JsonConvert.SerializeObject(insert_script_command);
+
+                    lock (_proxy_process_mutex)
+                    {
+                        proxy_process.proxy_management_stream.Client.Send(Encoding.UTF8.GetBytes(string_insert_command));
+                    }
+
+                    return;
+                }
+            }
+
+            throw new Exception("Error: script can't be loaded because the proxy process was not found");
+        }
+
+
+        #endregion
     }
 }
 

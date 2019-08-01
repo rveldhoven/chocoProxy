@@ -176,5 +176,22 @@ namespace chocoGUI
                 MessageBox.Show(error.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        private void Manage_scripts_mouse_up(object sender, MouseButtonEventArgs e)
+        {
+            if (proxy_view.SelectedIndex == -1)
+            {
+                MessageBox.Show("Select a proxy from the list to the left first", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var display_object = proxy_view.SelectedItem;
+
+            // The proxy's name is also it's adress since it's unique
+            string proxy_address = (string)object_helper.get_object_value(display_object, "ProxyAddress");
+
+            var script_manager_window = new ScriptManagerWindow(proxy_address, "Global");
+            script_manager_window.Show();
+        }
     }
 }

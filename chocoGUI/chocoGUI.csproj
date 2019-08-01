@@ -89,6 +89,9 @@
     <Compile Include="ProxyNewOrEditWindow.xaml.cs">
       <DependentUpon>ProxyNewOrEditWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ScriptManagerWindow.xaml.cs">
+      <DependentUpon>ScriptManagerWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="StreamWindow.xaml.cs">
       <DependentUpon>StreamWindow.xaml</DependentUpon>
     </Compile>
@@ -106,6 +109,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="ProxyNewOrEditWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="ScriptManagerWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
