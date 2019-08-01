@@ -5,8 +5,8 @@ use cpython::{
 	Python,
 };
 
-const MODULE_NAME : &str = "choco_python";
-const FUNCTION_NAME : &str = "handle_packet";
+const MODULE_NAME: &str = "choco_python";
+const FUNCTION_NAME: &str = "handle_packet";
 
 fn python_handler_from_str(py: Python<'_>, name: &String, source: &String) -> PyResult<PyModule>
 {
@@ -42,9 +42,9 @@ pub fn execute_python_handler(
 ) -> Result<Vec<u8>, ()>
 {
 	// module_from_str(py, "fibo", FIBO_PY)?;
-	
-    let gil = Python::acquire_gil();
-    let py = gil.python();
+
+	let gil = Python::acquire_gil();
+	let py = gil.python();
 
 	let mut result_bytes = Vec::new();
 
@@ -53,19 +53,31 @@ pub fn execute_python_handler(
 		Ok(v) => v,
 		_ => return Err(()),
 	};
-	
-	let result = match packet_module.call(py, FUNCTION_NAME, (source_ip, dest_ip, packet_type, packet_src_port, packet_dst_port, packet_payload,), None)
+
+	let result = match packet_module.call(
+		py,
+		FUNCTION_NAME,
+		(
+			source_ip,
+			dest_ip,
+			packet_type,
+			packet_src_port,
+			packet_dst_port,
+			packet_payload,
+		),
+		None,
+	)
 	{
 		Ok(v) => v,
 		_ => return Err(()),
 	};
-	
+
 	result_bytes = match result.extract(py)
 	{
 		Ok(v) => v,
 		_ => return Err(()),
 	};
-	
+
 	Ok(result_bytes)
 }
 

@@ -13,6 +13,10 @@ use serde::{
 };
 use serde_json::Result;
 
+const both_stream_direction: &str = "Both";
+const server_stream_direction: &str = "ServerClient";
+const client_stream_direction: &str = "ClientServer";
+
 /* ================== Connection global state ================== */
 
 #[repr(C)]
@@ -78,28 +82,40 @@ impl commandState
 		}
 	}
 }
-/*
-#[derive(Clone)]
-pub struct commandState
-{
 
+#[repr(C)]
+#[derive(Serialize, Deserialize, Clone)]
+pub struct pythonScript
+{
+	pub script: String,
+	pub direction: String,
 }
 
-impl commandState
+impl pythonScript
 {
-	pub fn new() -> commandState
+	pub fn new(ascript: String, adirection: String) -> pythonScript
 	{
-		commandState {
-			commands: Arc::new(Mutex::new(HashMap::new())),
+		if adirection != both_stream_direction.to_string()
+			&& adirection != client_stream_direction.to_string()
+			&& adirection != server_stream_direction.to_string()
+		{
+			error_and_exit(file!(), line!(), "Invalid stream direction");
+		}
+
+		pythonScript {
+			script: ascript,
+			direction: adirection,
 		}
 	}
 }
-*/
+
 #[derive(Clone)]
 pub struct globalState
 {
 	pub tcp_streams: Arc<Mutex<HashMap<String, streamState>>>,
 	pub commands: Arc<Mutex<HashMap<String, commandState>>>,
+	pub python_scripts: Arc<Mutex<HashMap<String, HashMap<String, pythonScript>>>>,
+	pub global_python_scripts: Arc<Mutex<HashMap<String, pythonScript>>>,
 	pub argv_options: HashMap<String, String>,
 }
 
@@ -110,6 +126,8 @@ impl globalState
 		globalState {
 			tcp_streams: Arc::new(Mutex::new(HashMap::new())),
 			commands: Arc::new(Mutex::new(HashMap::new())),
+			python_scripts: Arc::new(Mutex::new(HashMap::new())),
+			global_python_scripts: Arc::new(Mutex::new(HashMap::new())),
 			argv_options: HashMap::new(),
 		}
 	}
