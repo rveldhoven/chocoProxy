@@ -298,11 +298,9 @@ namespace chocoGUI
 
         public static Dictionary<string, Dictionary<string, cPythonScript>> ui_scripts_scripts_get(string proxy_id)
         {
-            string proxy_name = stream_id_to_proxy_id(proxy_id);
-
             lock (_script_list_mutex)
             {
-                return _script_list[proxy_name];
+                return _script_list[proxy_id];
             }
         }
 

@@ -177,7 +177,7 @@ namespace chocoGUI
             }
         }
 
-        private void Manage_scripts_mouse_up(object sender, MouseButtonEventArgs e)
+        private void Manage_scripts_mouse_up(object send, RoutedEventArgs e)
         {
             if (proxy_view.SelectedIndex == -1)
             {

@@ -41,11 +41,11 @@ namespace chocoGUI
                 {
                     ScriptName = string_object.Key,
                     ScriptDirection = string_object.Value.direction,
-                    ContentsAbriv = string_object.Value.script.SkipWhile((c) => c != '\n').Take(10),
+                    ContentsAbriv = string.Join("", string_object.Value.script.SkipWhile((c) => c != '\n').Take(10)),
                 };
 
-                if (scripts_view.Items.Contains(string_object) == false)
-                    scripts_view.Items.Add(string_object);
+                if (scripts_view.Items.Contains(script_view_item) == false)
+                    scripts_view.Items.Add(script_view_item);
             }
 
         }

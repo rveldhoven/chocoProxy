@@ -23,7 +23,7 @@
                             <ContextMenu x:Key="proxy_menu">
                                 <MenuItem Header="Terminate proxy" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
                                 <MenuItem Header="Edit metadata" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
-                                <MenuItem Header="Manage scripts" MouseUp="Manage_scripts_mouse_up" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                                <MenuItem Header="Manage scripts" Click="Manage_scripts_mouse_up" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
                             </ContextMenu>
                         </ListView.Resources>
                         <ListView.ItemContainerStyle>

@@ -73,6 +73,11 @@ impl s4Packet
 	}
 }
 
+fn handle_packet_client_server(packet_bytes : Vec<u8>)
+{
+	
+}
+
 pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalState)
 {
 	let mut header: [u8; 8] = [0; 8];

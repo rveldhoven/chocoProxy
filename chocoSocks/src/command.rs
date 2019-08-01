@@ -240,9 +240,9 @@ fn insert_script(mut global_state: globalState, mut parameters: Vec<Vec<u8>>)
 	let script_name: String =
 		String::from_utf8(parameters[1].clone()).expect("Invalid UTF8 in stream ID.");
 	let script_direction: String =
-		String::from_utf8(parameters[1].clone()).expect("Invalid UTF8 in stream ID.");
+		String::from_utf8(parameters[2].clone()).expect("Invalid UTF8 in stream ID.");
 	let script_content: String =
-		String::from_utf8(parameters[1].clone()).expect("Invalid UTF8 in stream ID.");
+		String::from_utf8(parameters[3].clone()).expect("Invalid UTF8 in stream ID.");
 
 	if stream_name != GLOBAL_STREAM
 	{

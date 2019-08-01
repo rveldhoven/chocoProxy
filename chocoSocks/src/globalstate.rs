@@ -87,13 +87,13 @@ impl commandState
 #[derive(Serialize, Deserialize, Clone)]
 pub struct pythonScript
 {
-	pub script: String,
 	pub direction: String,
+	pub script: String,
 }
 
 impl pythonScript
 {
-	pub fn new(ascript: String, adirection: String) -> pythonScript
+	pub fn new( adirection: String, ascript: String) -> pythonScript
 	{
 		if adirection != both_stream_direction.to_string()
 			&& adirection != client_stream_direction.to_string()
