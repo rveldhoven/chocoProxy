@@ -5,17 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:chocoGUI"
         mc:Ignorable="d"
-        Title="Add new proxy" Height="151.042" Width="444.883">
+        Title="Add new proxy" Height="159.331" Width="444.883">
     <Grid Margin="0,0,0,0">
-        <Label Margin="8,12,0,0" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="92">Proxy IP:PORT</Label>
+        <Label Margin="10,13,0,0" Height="25" VerticalAlignment="Top" HorizontalAlignment="Left" Width="158">Proxy IP:PORT</Label>
         <TextBox Name="proxy_ip_textbox" Height="20" Margin="171,13,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="205"/>
         <TextBox Name="proxy_port_textbox" Height="20" Margin="381,13,7,0" VerticalAlignment="Top"/>
-        <Label Margin="8,35,0,0" Height="29" VerticalAlignment="Top" HorizontalAlignment="Left" Width="278">Management IP:PORT</Label>
+        <Label Margin="10,38,0,0" Height="24" VerticalAlignment="Top" HorizontalAlignment="Left" Width="158">Management IP:PORT</Label>
         <TextBox Name="management_ip_textbox" Height="20" Margin="171,38,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="205"/>
         <TextBox Name="management_port_textbox" Height="20" Margin="381,38,7,0" RenderTransformOrigin="0.788,-0.345" VerticalAlignment="Top"/>
-        <TextBox Name="metadata_textbox" Margin="171,63,0,0" RenderTransformOrigin="0.788,-0.345" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" Width="260"/>
+        <TextBox Name="metadata_textbox" Margin="171,63,7.4,0" RenderTransformOrigin="0.788,-0.345" Height="20" VerticalAlignment="Top"/>
         <Button Content="Ok" HorizontalAlignment="Left" Margin="11,95,0,0" Width="60" Click="Button_Click" Height="20" VerticalAlignment="Top"/>
         <Button Content="Cancel" HorizontalAlignment="Left" Margin="76,95,0,0" Width="60" Click="Button_Click_1" Height="20" VerticalAlignment="Top"/>
-        <Label Margin="10,58,0,0" Content="Target process:" Height="29" VerticalAlignment="Top" HorizontalAlignment="Left" Width="278"/>
+        <Label Margin="10,63,0,0" Content="Target process:" Height="27" VerticalAlignment="Top" HorizontalAlignment="Left" Width="156"/>
     </Grid>
 </Window>

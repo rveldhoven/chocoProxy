@@ -254,7 +254,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 	let state_data = streamState::new(
 		// dummy data
 		dest_ip.clone(),
-		src_port.clone(),
+		dest_port.clone(),
 		src_ip.clone(),
 		src_port.clone(),
 		"random_pid".to_string(),
