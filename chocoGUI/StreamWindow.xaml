@@ -11,7 +11,7 @@
         <TabControl>
             <TabItem Header="Packet view">
                 <TabControl Name="stream_window_tabs">
-                    <Grid>
+                    <Grid Name="grid1">
                         <Grid.RowDefinitions>
                             <RowDefinition ></RowDefinition>
                             <RowDefinition></RowDefinition>
@@ -30,8 +30,8 @@
                             </Style>
                         </ListView.ItemContainerStyle>
                     </ListView>
-                        <control:HexEditor Name="packet_hex_editor" Grid.Row="1">
-                        </control:HexEditor>
+                        <!-- <control:HexEditor Name="packet_hex_editor" Grid.Row="1">
+                        </control:HexEditor> -->
                     </Grid>
                 </TabControl>
             </TabItem>

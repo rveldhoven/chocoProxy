@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
+using System.Windows.Forms.Integration;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -24,6 +25,7 @@ namespace chocoGUI
         private string _backend_file = null;
         private long _backend_size = 0;
         private string _stream_id = "";
+        private int _child_id = 0;
 
         private List<List<byte>> _packet_bytes = new List<List<byte>>();
 
@@ -123,9 +125,19 @@ namespace chocoGUI
 
             packet_stream_view.View = gridView;
 
-            packet_hex_editor.ReadOnlyMode = true;
+            //packet_hex_editor.ReadOnlyMode = true;
 
             _backend_file = backend_file;
+
+            System.Windows.Forms.Integration.WindowsFormsHost host = new System.Windows.Forms.Integration.WindowsFormsHost();
+
+            var hex_box = new Be.Windows.Forms.HexBox { Dock = System.Windows.Forms.DockStyle.Fill };
+
+            host.Child = hex_box;
+
+            Grid.SetRow(host, 1);
+
+            _child_id = grid1.Children.Add(host);
 
             ui_dispatcher_timer.Tick += new EventHandler(ui_update_tick);
             ui_dispatcher_timer.Interval = new TimeSpan(0, 0, 0, 0, 500);
@@ -143,8 +155,9 @@ namespace chocoGUI
 
             List<byte> packet_bytes = _packet_bytes[packet_number];
 
-            WpfHexaEditor.HexEditor hex_editor = new WpfHexaEditor.HexEditor();
-            hex_editor.Stream = new System.IO.MemoryStream(packet_bytes.ToArray());
+            System.Windows.Forms.Integration.WindowsFormsHost host = new System.Windows.Forms.Integration.WindowsFormsHost();
+            var hex_box = new Be.Windows.Forms.HexBox { Dock = System.Windows.Forms.DockStyle.Fill };
+            host.Child = hex_box;
 
             Grid repeater_tab_grid = new Grid();
             repeater_tab_grid.HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -165,18 +178,25 @@ namespace chocoGUI
             send_button.HorizontalAlignment = HorizontalAlignment.Left;
             send_button.VerticalAlignment = VerticalAlignment.Stretch;
 
+
+            hex_box.ByteProvider = new Be.Windows.Forms.DynamicByteProvider(packet_bytes);
+            hex_box.StringViewVisible = true;
+            hex_box.VScrollBarVisible = true;
+
             send_button.Click += new RoutedEventHandler(delegate (object inner_sender, RoutedEventArgs inner_e)
             {
-                byte[] buffer = new byte[hex_editor.Stream.Length];
-                hex_editor.Stream.Read(buffer, 0, (int)hex_editor.Stream.Length);
+                List<byte> send_bytes = new List<byte>();
 
-                cGlobalState.ui_proxy_repeat_packet(_stream_id, buffer.ToList());
+                for (uint i = 0; i < hex_box.ByteProvider.Length; i++)
+                    send_bytes.Add(hex_box.ByteProvider.ReadByte(i));
+
+                cGlobalState.ui_proxy_repeat_packet(_stream_id, send_bytes);
             });
 
             Grid.SetRow(send_button, 1);
-            Grid.SetRow(hex_editor, 0);
+            Grid.SetRow(host, 0);
 
-            repeater_tab_grid.Children.Add(hex_editor);
+            repeater_tab_grid.Children.Add(host);
             repeater_tab_grid.Children.Add(send_button);
 
             TabItem new_tab = new TabItem();
@@ -200,8 +220,19 @@ namespace chocoGUI
 
             List<byte> packet_bytes = _packet_bytes[packet_number];
 
-            packet_hex_editor.Stream = new System.IO.MemoryStream(packet_bytes.ToArray());
-            packet_hex_editor.ReadOnlyMode = true;
+
+            System.Windows.Forms.Integration.WindowsFormsHost host = (WindowsFormsHost)grid1.Children[_child_id];
+
+            Be.Windows.Forms.HexBox my_hex_box = (Be.Windows.Forms.HexBox)host.Child;
+
+            my_hex_box.ByteProvider = new Be.Windows.Forms.DynamicByteProvider(packet_bytes);
+            my_hex_box.StringViewVisible = true;
+            my_hex_box.VScrollBarVisible = true;
+
+            //grid1.Children[0].
+
+            //packet_hex_editor.Stream = new System.IO.MemoryStream(packet_bytes.ToArray());
+            //packet_hex_editor.ReadOnlyMode = true;
         }
     }
 }
