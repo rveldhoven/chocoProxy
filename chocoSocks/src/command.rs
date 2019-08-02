@@ -2,6 +2,7 @@ use std::{
 	collections::{
 		hash_map::Entry,
 		HashMap,
+		VecDeque,
 	},
 	io::{
 		Read,
@@ -314,7 +315,8 @@ fn repeat_packet(mut global_state: globalState, mut parameters: Vec<Vec<u8>>)
 
 	if let Ok(mut unlocked_command) = global_state.commands.lock()
 	{
-		unlocked_command.insert(stream_id, command_data);
+		let mut hashentry = unlocked_command.entry(stream_id).or_insert(VecDeque::new());
+		hashentry.push_back(command_data);
 	}
 	else
 	{

@@ -1,5 +1,5 @@
 use std::{
-	collections::HashMap,
+	collections::{HashMap,VecDeque},
 	sync::{
 		Arc,
 		Mutex,
@@ -113,7 +113,7 @@ impl pythonScript
 pub struct globalState
 {
 	pub tcp_streams: Arc<Mutex<HashMap<String, streamState>>>,
-	pub commands: Arc<Mutex<HashMap<String, commandState>>>,
+	pub commands: Arc<Mutex<HashMap<String, VecDeque<commandState>>>>,
 	pub python_scripts: Arc<Mutex<HashMap<String, HashMap<String, pythonScript>>>>,
 	pub global_python_scripts: Arc<Mutex<HashMap<String, pythonScript>>>,
 	pub argv_options: HashMap<String, String>,

@@ -279,15 +279,6 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 	{
 		activity = false;
 
-		if let Ok(mut unlocked_command) = global_state.commands.lock()
-		{
-			match unlocked_command.get(&state_id)
-			{
-				Some(command_struct) => println!("{}", command_struct.command),
-				None => (),
-			}
-		}
-
 		let bytes_received = match server_stream.read(&mut packet_data)
 		{
 			Ok(v) => v,
@@ -383,10 +374,62 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 			}
 			activity = true;
 		}
-
+		
 		if activity == false
 		{
 			thread::sleep(time::Duration::from_millis(10));
+		}
+		
+		let mut current_command : Option<commandState> = None;
+		
+		if let Ok(mut unlocked_command) = global_state.commands.lock()
+		{
+			current_command = match unlocked_command.get_mut(&state_id)
+				{
+					Some(v) => v.pop_front(),
+					None => None,
+				};
+		}
+		
+		let real_command = match current_command 
+		{
+			Some(v) => v,
+			_ => continue,
+		};
+		
+		let mut client_to_server_bytes = Vec::new();
+		
+		match real_command.command.as_ref()
+		{
+			"repeat_packet" => client_to_server_bytes = real_command.parameters[0].clone(),
+			_ => error_and_continue(file!(),line!(),"Invalid command: invalid number of parameters"),
+		};
+
+		save_to_pcap(
+			&client_to_server_bytes,
+			&0,
+			&1,
+			&client_server_syn,
+			&server_client_syn,
+			&mut file,
+		);
+		
+		client_server_syn = client_server_syn.wrapping_add(client_to_server_bytes.len() as u32);
+
+		if let Err(_) = server_stream.write(&client_to_server_bytes)
+		{
+			client_stream.shutdown(Shutdown::Both);
+
+			if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock()
+			{
+				unlocked_streams.remove(&state_id);
+			}
+			else
+			{
+				error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
+			}
+
+			break;
 		}
 	}
 }
