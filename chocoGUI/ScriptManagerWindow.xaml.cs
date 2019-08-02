@@ -88,6 +88,8 @@ namespace chocoGUI
             string script_name = (string)object_helper.get_object_value(display_object, "ScriptName");
 
             cGlobalState.ui_script_delete_script(_proxy_id, _stream_id, script_name);
+
+            scripts_view.Items.RemoveAt(scripts_view.SelectedIndex);
         }
 
         private void add_script_button_Click(object sender, RoutedEventArgs e)

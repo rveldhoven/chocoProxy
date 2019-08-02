@@ -93,7 +93,7 @@ pub struct pythonScript
 
 impl pythonScript
 {
-	pub fn new( adirection: String, ascript: String) -> pythonScript
+	pub fn new(adirection: String, ascript: String) -> pythonScript
 	{
 		if adirection != both_stream_direction.to_string()
 			&& adirection != client_stream_direction.to_string()

@@ -40,6 +40,7 @@ use crate::{
 	error::*,
 	globalstate::*,
 	pcap::*,
+	python::*,
 };
 
 /* ================== SOCKS4 packet ================== */
@@ -73,9 +74,84 @@ impl s4Packet
 	}
 }
 
-fn handle_packet_client_server(packet_bytes : Vec<u8>)
+fn handle_packet_client_server(
+	mut global_state: globalState,
+	src_ip: String,
+	src_port: String,
+	dest_ip: String,
+	dest_port: String,
+	packet_bytes: Vec<u8>,
+) -> Vec<u8>
 {
-	
+	let mut scripts: Vec<String> = Vec::new();
+
+	if let Ok(global_python) = global_state.global_python_scripts.lock()
+	{
+		scripts = global_python.values().map(|ps| ps.script.clone()).collect();
+	}
+	else
+	{
+		error_and_exit(file!(), line!(), "Failed to lock python scripts");
+	}
+
+	if scripts.len() == 0
+	{
+		return Vec::new();
+	}
+
+	match execute_python_handlers(
+		scripts,
+		&src_ip,
+		&dest_ip,
+		&"TCP".to_string(),
+		&src_port,
+		&dest_port,
+		packet_bytes.clone(),
+	)
+	{
+		Ok(v) => v,
+		_ => packet_bytes,
+	}
+}
+
+fn handle_packet_server_client(
+	mut global_state: globalState,
+	src_ip: String,
+	src_port: String,
+	dest_ip: String,
+	dest_port: String,
+	packet_bytes: Vec<u8>,
+) -> Vec<u8>
+{
+	let mut scripts: Vec<String> = Vec::new();
+
+	if let Ok(global_python) = global_state.global_python_scripts.lock()
+	{
+		scripts = global_python.values().map(|ps| ps.script.clone()).collect();
+	}
+	else
+	{
+		error_and_exit(file!(), line!(), "Failed to lock python scripts");
+	}
+
+	if scripts.len() == 0
+	{
+		return Vec::new();
+	}
+
+	match execute_python_handlers(
+		scripts,
+		&src_ip,
+		&dest_ip,
+		&"TCP".to_string(),
+		&src_port,
+		&dest_port,
+		packet_bytes.clone(),
+	)
+	{
+		Ok(v) => v,
+		_ => packet_bytes,
+	}
 }
 
 pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalState)
@@ -144,6 +220,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		.duration_since(UNIX_EPOCH)
 		.unwrap()
 		.as_millis();
+
 	let filename = "stream".to_string() + &timestamp.to_string() + &".pcap".to_string();
 
 	let mut file = match File::create(&filename)
@@ -168,12 +245,18 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		.as_millis()
 		.to_string();
 
+	let dest_ip = littlePacket.ip_address.to_string();
+	let dest_port = littlePacket.socks_port.to_string();
+
+	let src_ip = client_stream.local_addr().unwrap().ip().to_string();
+	let src_port = client_stream.local_addr().unwrap().port().to_string();
+
 	let state_data = streamState::new(
 		// dummy data
-		littlePacket.ip_address.to_string(),
-		littlePacket.socks_port.to_string(),
-		"127.0.0.1".to_string(),
-		"1337".to_string(),
+		dest_ip.clone(),
+		src_port.clone(),
+		src_ip.clone(),
+		src_port.clone(),
 		"random_pid".to_string(),
 		"random_process_name".to_string(),
 		filename,
@@ -213,8 +296,19 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 
 		if bytes_received != 0
 		{
+			let mut server_to_client_bytes = packet_data[0..bytes_received].to_vec();
+
+			server_to_client_bytes = handle_packet_server_client(
+				global_state.clone(),
+				src_ip.clone(),
+				src_port.clone(),
+				dest_ip.clone(),
+				dest_port.clone(),
+				server_to_client_bytes,
+			);
+
 			save_to_pcap(
-				&packet_data[0..bytes_received].to_vec(),
+				&server_to_client_bytes,
 				&1,
 				&0,
 				&server_client_syn,
@@ -222,9 +316,9 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 				&mut file,
 			);
 
-			server_client_syn = server_client_syn.wrapping_add(bytes_received as u32);
+			server_client_syn = server_client_syn.wrapping_add(server_to_client_bytes.len() as u32);
 
-			if let Err(_) = client_stream.write(&packet_data[0..bytes_received])
+			if let Err(_) = client_stream.write(&server_to_client_bytes)
 			{
 				server_stream.shutdown(Shutdown::Both);
 
@@ -250,8 +344,19 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 
 		if bytes_received != 0
 		{
+			let mut client_to_server_bytes = packet_data[0..bytes_received].to_vec();
+
+			client_to_server_bytes = handle_packet_client_server(
+				global_state.clone(),
+				src_ip.clone(),
+				src_port.clone(),
+				dest_ip.clone(),
+				dest_port.clone(),
+				client_to_server_bytes,
+			);
+
 			save_to_pcap(
-				&packet_data[0..bytes_received].to_vec(),
+				&client_to_server_bytes,
 				&0,
 				&1,
 				&client_server_syn,
@@ -259,9 +364,9 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 				&mut file,
 			);
 
-			client_server_syn = client_server_syn.wrapping_add(bytes_received as u32);
+			client_server_syn = client_server_syn.wrapping_add(client_to_server_bytes.len() as u32);
 
-			if let Err(_) = server_stream.write(&packet_data[0..bytes_received])
+			if let Err(_) = server_stream.write(&client_to_server_bytes)
 			{
 				client_stream.shutdown(Shutdown::Both);
 
