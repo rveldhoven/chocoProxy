@@ -96,7 +96,7 @@ fn handle_packet_client_server(
 
 	if scripts.len() == 0
 	{
-		return Vec::new();
+		return packet_bytes;
 	}
 
 	match execute_python_handlers(
@@ -136,7 +136,7 @@ fn handle_packet_server_client(
 
 	if scripts.len() == 0
 	{
-		return Vec::new();
+		return packet_bytes;
 	}
 
 	match execute_python_handlers(
