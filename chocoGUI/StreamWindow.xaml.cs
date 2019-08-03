@@ -263,6 +263,8 @@ namespace chocoGUI
 
             _child_id = grid1.Children.Add(host);
 
+            hex_box.ByteProvider = new Be.Windows.Forms.DynamicByteProvider(new List<byte>());
+
             ui_dispatcher_timer.Tick += new EventHandler(ui_update_tick);
             ui_dispatcher_timer.Interval = new TimeSpan(0, 0, 0, 0, 500);
             ui_dispatcher_timer.Start();
