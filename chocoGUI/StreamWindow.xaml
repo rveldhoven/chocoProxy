@@ -8,30 +8,32 @@
         mc:Ignorable="d"
         Title="TCP stream" Height="450" Width="800">
     <Grid>
-        <TabControl>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="90*"></RowDefinition>
+            <RowDefinition Height="6*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <TabControl Grid.Row="0">
             <TabItem Header="Packet view">
                 <TabControl Name="stream_window_tabs">
                     <Grid Name="grid1">
                         <Grid.RowDefinitions>
-                            <RowDefinition ></RowDefinition>
+                            <RowDefinition></RowDefinition>
                             <RowDefinition></RowDefinition>
                         </Grid.RowDefinitions>
-                    <ListView x:Name="packet_stream_view" Grid.Row="0" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" MouseUp="Packet_stream_view_MouseUp">
-                        <ListView.Resources>
-                            <ContextMenu x:Key="packet_stream_menu">
+                        <ListView x:Name="packet_stream_view" Grid.Row="0" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" MouseUp="Packet_stream_view_MouseUp">
+                            <ListView.Resources>
+                                <ContextMenu x:Key="packet_stream_menu">
                                     <MenuItem Header="Send to repeater" Click="SendToRepeater_Click" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
-                            </ContextMenu>
-                        </ListView.Resources>
-                        <ListView.ItemContainerStyle>
-                            <Style TargetType="{x:Type ListViewItem}">
-                                <Setter Property="BorderBrush" Value="LightGray" />
-                                <Setter Property="BorderThickness" Value="0,0,1,1" />
-                                <Setter Property="ContextMenu" Value="{StaticResource packet_stream_menu}" />
-                            </Style>
-                        </ListView.ItemContainerStyle>
-                    </ListView>
-                        <!-- <control:HexEditor Name="packet_hex_editor" Grid.Row="1">
-                        </control:HexEditor> -->
+                                </ContextMenu>
+                            </ListView.Resources>
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="{x:Type ListViewItem}">
+                                    <Setter Property="BorderBrush" Value="LightGray" />
+                                    <Setter Property="BorderThickness" Value="0,0,1,1" />
+                                    <Setter Property="ContextMenu" Value="{StaticResource packet_stream_menu}" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                        </ListView>
                     </Grid>
                 </TabControl>
             </TabItem>
@@ -40,5 +42,8 @@
                 </TabControl>
             </TabItem>
         </TabControl>
+        <Button Name="toggle_intercept_button" Grid.Row="1" Margin="10,0,0,3" VerticalAlignment="Bottom" HorizontalAlignment="Left" Click="toggle_intercept_button_Click">Toggle intercept</Button>
+        <Button Name="send_packet_button" Grid.Row="1" Margin="105,0,0,3" VerticalAlignment="Bottom" HorizontalAlignment="Left" Click="send_packet_button_Click">Send packet</Button>
+        <Label Name="intercept_status"  Content="Intercepting: no" Grid.Row="1" Margin="173,0,0,0" ></Label>
     </Grid>
 </Window>

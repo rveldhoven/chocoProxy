@@ -2,7 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -27,11 +30,56 @@ namespace chocoGUI
         private string _stream_id = "";
         private int _child_id = 0;
 
+        private bool _is_intercepting = false;
+        private TcpClient _intercepting_client = new TcpClient();
+
         private List<List<byte>> _packet_bytes = new List<List<byte>>();
 
         public DispatcherTimer ui_dispatcher_timer = new DispatcherTimer();
 
         int tab_counter = 0;
+
+        private TcpClient ui_tcp_wait_for_connection()
+        {
+            string connection_string = "";
+
+            Random temp_random = new Random();
+
+            while(true)
+            {
+
+                try
+                {
+                    int Port = temp_random.Next(1024, 0xfffe);
+
+                    TcpListener temp_listener = new TcpListener(IPAddress.Loopback, Port);
+                    temp_listener.Start();
+
+                    connection_string = "127.0.0.1:" + Port.ToString();
+
+                    cGlobalState.ui_toggle_intercept(_stream_id, "true", connection_string);
+
+                    for(int i = 0; i < 100; i++)
+                    {
+                        if (temp_listener.Pending() == false)
+                        {
+                            Thread.Sleep(100);
+                            continue;
+                        }
+
+                        var temp_stream = temp_listener.AcceptTcpClient();
+
+                        temp_listener.Stop();
+
+                        return temp_stream;
+
+                    }
+                }
+                catch(Exception e)
+                {
+                }
+            }
+        }
 
         private void ui_populate_packet_view()
         {
@@ -105,9 +153,85 @@ namespace chocoGUI
             }
         }
 
+        private List<byte> ui_receive_intercepted_packet()
+        {
+            byte[] receive_buffer = new byte[10 * 65535];
+            List<byte> receive_buffer_final = new List<byte>();
+
+            byte[] receive_command_size = new byte[4];
+
+            _intercepting_client.Client.Receive(receive_command_size);
+
+            int expected_command_size = BitConverter.ToInt32(receive_command_size, 0);
+            int received_bytes = 0;
+
+            receive_buffer_final.Clear();
+
+            while (received_bytes < expected_command_size)
+            {
+                int received_t = _intercepting_client.Client.Receive(receive_buffer);
+                receive_buffer_final.AddRange(receive_buffer.Take(received_t));
+                received_bytes += received_t;
+            }
+
+            return receive_buffer_final;
+        }
+
+        private void ui_send_intercepted_packet(List<byte> packet)
+        {
+            if (_is_intercepting == false)
+                return;
+
+            _intercepting_client.Client.Send(BitConverter.GetBytes((UInt32)packet.Count));
+            _intercepting_client.Client.Send(packet.ToArray());
+        }
+        
+        private void send_packet_button_Click(object sender, RoutedEventArgs e)
+        {
+            if (_is_intercepting == false)
+                return;
+
+            System.Windows.Forms.Integration.WindowsFormsHost host = (WindowsFormsHost)grid1.Children[_child_id];
+
+            Be.Windows.Forms.HexBox my_hex_box = (Be.Windows.Forms.HexBox)host.Child;
+
+            List<byte> send_bytes = new List<byte>();
+
+            for (uint i = 0; i < my_hex_box.ByteProvider.Length; i++)
+                send_bytes.Add(my_hex_box.ByteProvider.ReadByte(i));
+
+            my_hex_box.ByteProvider = new Be.Windows.Forms.DynamicByteProvider(new List<byte>());
+
+            ui_send_intercepted_packet(send_bytes);
+        }
+
+        private void ui_handle_intercept()
+        {
+            if (_is_intercepting == false)
+                return;
+
+            System.Windows.Forms.Integration.WindowsFormsHost host = (WindowsFormsHost)grid1.Children[_child_id];
+
+            Be.Windows.Forms.HexBox my_hex_box = (Be.Windows.Forms.HexBox)host.Child;
+
+            if (my_hex_box.ByteProvider.Length != 0)
+                return;
+
+            if (_intercepting_client.Client.Available < 4)
+                return;
+
+            List<byte> new_bytes = ui_receive_intercepted_packet();
+
+            my_hex_box.ByteProvider = new Be.Windows.Forms.DynamicByteProvider(new_bytes);
+            my_hex_box.StringViewVisible = true;
+            my_hex_box.VScrollBarVisible = true;
+        }
+
         private void ui_update_tick(object sender, EventArgs e)
         {
             ui_populate_packet_view();
+
+            ui_handle_intercept();
         }
 
         public StreamWindow(string backend_file, string stream_id)
@@ -220,7 +344,6 @@ namespace chocoGUI
 
             List<byte> packet_bytes = _packet_bytes[packet_number];
 
-
             System.Windows.Forms.Integration.WindowsFormsHost host = (WindowsFormsHost)grid1.Children[_child_id];
 
             Be.Windows.Forms.HexBox my_hex_box = (Be.Windows.Forms.HexBox)host.Child;
@@ -233,6 +356,21 @@ namespace chocoGUI
 
             //packet_hex_editor.Stream = new System.IO.MemoryStream(packet_bytes.ToArray());
             //packet_hex_editor.ReadOnlyMode = true;
+        }
+
+        private void toggle_intercept_button_Click(object sender, RoutedEventArgs e)
+        {
+            _is_intercepting = !_is_intercepting;
+
+            intercept_status.Content = "Intercepting: " + (_is_intercepting == true ? "yes" : "no");
+
+            if (_is_intercepting == false)
+            {
+                cGlobalState.ui_toggle_intercept(_stream_id, "false", "127.0.0.1:1231");
+                return;
+            }
+
+            _intercepting_client = ui_tcp_wait_for_connection();
         }
     }
 }

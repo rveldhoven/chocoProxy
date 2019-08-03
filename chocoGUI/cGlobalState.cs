@@ -131,9 +131,7 @@ namespace chocoGUI
         #endregion
 
         #region background setters
-
-
-
+        
         private static void background_update_streams()
         {
             cCommand active_streams_struct = new cCommand
@@ -429,7 +427,7 @@ namespace chocoGUI
 
             List<cProxyProcess> proxy_processes = ui_proxy_process_get();
 
-            foreach(var proxy_process in proxy_processes)
+            foreach (var proxy_process in proxy_processes)
             {
                 if (proxy_process.proxy_process_metadata == proxy_management_parent)
                 {
@@ -460,6 +458,59 @@ namespace chocoGUI
             throw new Exception("Error: packet can't be repeated because the connection is belongs to has closed");
         }
 
+        public static void ui_toggle_intercept(string stream_id, string true_or_false, string connection_string)
+        {
+            string proxy_management_parent = "";
+
+            List<cTCPStream> tcp_streams = ui_tcp_streams_get();
+
+            foreach (var tcp_stream in tcp_streams)
+            {
+                if (tcp_stream.stream_start == stream_id)
+                {
+                    proxy_management_parent = tcp_stream.source_process_name;
+                    break;
+                }
+            }
+
+            if (proxy_management_parent == "")
+                throw new Exception("Error: interception cannot be toggled because the connection is belongs too has closed");
+
+            List<cProxyProcess> proxy_processes = ui_proxy_process_get();
+
+            foreach (var proxy_process in proxy_processes)
+            {
+                if (proxy_process.proxy_process_metadata == proxy_management_parent)
+                {
+                    byte[] bytes_stream_id = Encoding.UTF8.GetBytes(stream_id);
+                    byte[] true_bytes_id = Encoding.UTF8.GetBytes(true_or_false);
+                    byte[] bytes_connection_string = Encoding.UTF8.GetBytes(connection_string);
+
+                    List<List<byte>> command_parameters = new List<List<byte>>();
+
+                    command_parameters.Add(bytes_stream_id.ToList());
+                    command_parameters.Add(true_bytes_id.ToList());
+                    command_parameters.Add(bytes_connection_string.ToList());
+
+                    cCommand intercept_stream_command = new cCommand
+                    {
+                        command = "toggle_intercept",
+                        parameters = command_parameters,
+                    };
+
+                    string json_command = JsonConvert.SerializeObject(intercept_stream_command);
+
+                    lock (_proxy_process_mutex)
+                    {
+                        proxy_process.proxy_management_stream.Client.Send(Encoding.UTF8.GetBytes(json_command));
+                    }
+
+                    return;
+                }
+            }
+
+            throw new Exception("Error: interception cannot be toggled because the connection is belongs too has closed");
+        }
 
         public static void ui_script_delete_script(string proxy_id, string stream_id, string script_name)
         {
