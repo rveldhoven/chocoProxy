@@ -99,6 +99,10 @@ fn handle_command_client(mut command_stream: TcpStream, mut global_state: global
 			{
 				repeat_packet(command_global_state, command_state.parameters);
 			}
+			"toggle_intercept" =>
+			{
+				toggle_intercept(command_global_state, command_state.parameters);
+			}
 			_ => println!("Unknown command."),
 		}
 	}
@@ -312,6 +316,24 @@ fn repeat_packet(mut global_state: globalState, mut parameters: Vec<Vec<u8>>)
 		String::from_utf8(parameters[0].clone()).expect("Invalid UTF8 in stream ID.");
 	parameters.remove(0);
 	let command_data = commandState::new(String::from("repeat_packet"), parameters);
+
+	if let Ok(mut unlocked_command) = global_state.commands.lock()
+	{
+		let mut hashentry = unlocked_command.entry(stream_id).or_insert(VecDeque::new());
+		hashentry.push_back(command_data);
+	}
+	else
+	{
+		error_and_exit(file!(), line!(), "Failed to lock commands");
+	}
+}
+
+fn toggle_intercept(mut global_state: globalState, mut parameters: Vec<Vec<u8>>)
+{
+	let stream_id: String =
+		String::from_utf8(parameters[0].clone()).expect("Invalid UTF8 in stream ID.");
+	parameters.remove(0);
+	let command_data = commandState::new(String::from("toggle_intercept"), parameters);
 
 	if let Ok(mut unlocked_command) = global_state.commands.lock()
 	{

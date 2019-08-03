@@ -74,6 +74,29 @@ impl s4Packet
 	}
 }
 
+fn echo_send_and_receive_packet(echo_tcpstream: &mut TcpStream, packet_bytes : Vec<u8>) -> Vec<u8>
+{
+	let mut received_bytes : [u8; 4] = [0; 4];
+	echo_tcpstream
+		.write(&(packet_bytes.len() as u32).to_ne_bytes())
+		.unwrap();
+	echo_tcpstream.write(&packet_bytes).unwrap();
+	if let Err(_) = echo_tcpstream.read(&mut received_bytes)
+	{
+		error_and_exit(file!(), line!(), "Failed to receive intercepted packet length.");
+	}
+	let mut intercept_amount = unsafe { 
+		std::mem::transmute::<[u8; 4], u32>(
+		[received_bytes[0], received_bytes[1], received_bytes[2], received_bytes[3]]
+		)}.to_le();
+	let mut modified_bytes : Vec<u8> = Vec::with_capacity(intercept_amount as usize);
+	if let Err(_) = echo_tcpstream.read(&mut modified_bytes)
+	{
+		error_and_exit(file!(), line!(), "Failed to receive intercepted packet.");
+	}
+	modified_bytes
+}
+
 fn handle_packet_client_server(
 	mut global_state: globalState,
 	src_ip: String,
@@ -274,11 +297,13 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 	}
 
 	let mut activity: bool = false;
-
+	let mut intercept: bool = false;
+	let mut echo_tcpstream : Option<TcpStream> = None;
+	
 	loop
 	{
 		activity = false;
-
+		
 		let bytes_received = match server_stream.read(&mut packet_data)
 		{
 			Ok(v) => v,
@@ -336,15 +361,32 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		if bytes_received != 0
 		{
 			let mut client_to_server_bytes = packet_data[0..bytes_received].to_vec();
-
-			client_to_server_bytes = handle_packet_client_server(
+			
+			if intercept == true
+			{
+				let mut temp_tcpstream = match echo_tcpstream
+				{
+					Some(v) => v,
+					None => 
+					{
+						error_and_exit(file!(), line!(), "No echo stream found.");
+						panic!("No echo stream found.");
+					},
+				};
+				client_to_server_bytes = echo_send_and_receive_packet(&mut temp_tcpstream, client_to_server_bytes);
+				echo_tcpstream = Some(temp_tcpstream);
+			}
+			else
+			{
+				client_to_server_bytes = handle_packet_client_server(
 				global_state.clone(),
 				src_ip.clone(),
 				src_port.clone(),
 				dest_ip.clone(),
 				dest_port.clone(),
 				client_to_server_bytes,
-			);
+				);
+			}
 
 			save_to_pcap(
 				&client_to_server_bytes,
@@ -402,6 +444,27 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		match real_command.command.as_ref()
 		{
 			"repeat_packet" => client_to_server_bytes = real_command.parameters[0].clone(),
+			"toggle_intercept" => 
+			{
+				let toggle_flag: String =
+					String::from_utf8(real_command.parameters[0].clone()).expect("Invalid UTF8 in toggle flag.");
+				match toggle_flag.as_ref()
+				{
+					"true" => 
+					{
+						intercept = true;
+						let connection_string: String =
+							String::from_utf8(real_command.parameters[1].clone()).expect("Invalid UTF8 in connection string.");
+						echo_tcpstream = match TcpStream::connect(connection_string)
+						{
+							Ok(v) => Some(v),
+							Err(_) => None,
+						};
+					},
+					"false" => intercept = false,
+					_ => error_and_continue(file!(),line!(),"Invalid toggle value: must be true or false"),
+				};
+			}
 			_ => error_and_continue(file!(),line!(),"Invalid command: invalid number of parameters"),
 		};
 
