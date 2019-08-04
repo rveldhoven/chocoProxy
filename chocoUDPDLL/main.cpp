@@ -110,6 +110,8 @@ std::vector<uint8_t> send_receive(SOCKET home_socket, const std::vector<uint8_t>
 
 	uint32_t send_size = data.size();
 
+	send_size_buffer.insert(send_size_buffer.begin(), (uint8_t*)& send_size, (uint8_t*)& send_size + sizeof(send_size));
+
 	send(home_socket, (char*)send_size_buffer.data(), send_size_buffer.size(), 0);
 	send(home_socket, (char*)data.data(), data.size(), 0);
 

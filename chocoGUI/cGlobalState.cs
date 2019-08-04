@@ -262,8 +262,9 @@ namespace chocoGUI
         private static void background_main()
         {
             int tcp_stream_update_counter = 0;
+            int udp_stream_update_counter = 3;
             int scripts_update_counter = 5;
-            int proxy_provess_update_counter = 0;
+            int proxy_process_update_counter = 0;
 
             while (_background_is_running == true)
             {
@@ -275,6 +276,13 @@ namespace chocoGUI
                     background_update_tcp_streams();
                 }
 
+                if (udp_stream_update_counter++ > 10)
+                {
+                    udp_stream_update_counter = 0;
+
+                    background_update_udp_streams();
+                }
+
                 if (scripts_update_counter++ > 10)
                 {
                     scripts_update_counter = 0;
@@ -283,7 +291,7 @@ namespace chocoGUI
                 }
 
                 // Updates the view on running proxies
-                if(proxy_provess_update_counter++ > 5)
+                if(proxy_process_update_counter++ > 5)
                 {
                     lock (_proxy_process_mutex)
                     {
