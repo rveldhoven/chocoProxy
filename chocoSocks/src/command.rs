@@ -103,6 +103,10 @@ fn handle_command_client(mut command_stream: TcpStream, mut global_state: global
 			{
 				toggle_intercept(command_global_state, command_state.parameters);
 			}
+			"global_intercept" =>
+			{
+				global_intercept(command_global_state, command_state.parameters);
+			}
 			_ => println!("Unknown command."),
 		}
 	}
@@ -342,6 +346,24 @@ fn toggle_intercept(mut global_state: globalState, mut parameters: Vec<Vec<u8>>)
 	}
 	else
 	{
-		error_and_exit(file!(), line!(), "Failed to lock commands");
+		error_and_exit(file!(), line!(), "Failed to lock commands.");
+	}
+}
+
+fn global_intercept(mut global_state: globalState, mut parameters: Vec<Vec<u8>>)
+{
+	if let Ok(mut unlocked_toggle) = global_state.global_intercept.lock()
+	{
+		let toggle_flag: String = String::from_utf8(parameters[0].clone()).expect("Invalid UTF8 in global toggle flag.");
+		let mut unlocked_toggle = match toggle_flag.as_ref()
+		{
+			"true" => true,
+			"false" => false,
+			_ => panic!("Invalid value for global intercept mutex - must be true or false."),
+		};
+	}
+	else
+	{
+		error_and_exit(file!(), line!(), "Failed to lock global intercept mutex.");
 	}
 }

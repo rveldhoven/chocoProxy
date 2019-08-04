@@ -116,6 +116,7 @@ pub struct globalState
 	pub commands: Arc<Mutex<HashMap<String, VecDeque<commandState>>>>,
 	pub python_scripts: Arc<Mutex<HashMap<String, HashMap<String, pythonScript>>>>,
 	pub global_python_scripts: Arc<Mutex<HashMap<String, pythonScript>>>,
+	pub global_intercept: Arc<Mutex<bool>>,
 	pub argv_options: HashMap<String, String>,
 }
 
@@ -128,6 +129,7 @@ impl globalState
 			commands: Arc::new(Mutex::new(HashMap::new())),
 			python_scripts: Arc::new(Mutex::new(HashMap::new())),
 			global_python_scripts: Arc::new(Mutex::new(HashMap::new())),
+			global_intercept: Arc::new(Mutex::new(false)),
 			argv_options: HashMap::new(),
 		}
 	}
