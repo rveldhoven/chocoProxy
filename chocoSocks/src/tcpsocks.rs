@@ -74,6 +74,68 @@ impl s4Packet
 	}
 }
 
+fn process_command(
+	mut global_state: globalState, 
+	state_id: &String, 
+	repeater: &mut bool, 
+	intercept: &mut bool, 
+	client_to_server_bytes: &mut Vec<u8>,
+) -> Option<String>
+{
+	let mut current_command : Option<commandState> = None;
+	
+	if let Ok(mut unlocked_command) = global_state.commands.lock()
+	{
+		current_command = match unlocked_command.get_mut(state_id)
+			{
+				Some(v) => v.pop_front(),
+				None => None,
+			};
+	}
+	
+	let real_command = match current_command 
+	{
+		Some(v) => v,
+		_ => return None,
+	};
+	
+	match real_command.command.as_ref()
+	{
+		"repeat_packet" => 
+		{
+			client_to_server_bytes = real_command.parameters[0].clone();
+			repeater = &mut true;
+			None
+		},		
+		"toggle_intercept" => 
+		{
+			let toggle_flag: String =
+				String::from_utf8(real_command.parameters[0].clone()).expect("Invalid UTF8 in toggle flag.");
+			match toggle_flag.as_ref()
+			{
+				"true" => 
+				{
+					intercept = &mut true;
+					let connection_string: String =
+						String::from_utf8(real_command.parameters[1].clone()).expect("Invalid UTF8 in connection string.");
+					Some(connection_string)
+				},
+				"false" => None,
+				_ => 
+				{
+					error_and_continue(file!(),line!(),"Invalid toggle value: must be true or false");
+					None
+				},
+			}
+		}
+		_ => 
+		{
+			error_and_continue(file!(),line!(),"Invalid command: invalid number of parameters");
+			None
+		},
+	}
+}
+
 fn echo_send_and_receive_packet(echo_tcpstream: &mut TcpStream, packet_bytes : Vec<u8>) -> Vec<u8>
 {
 	let mut received_bytes : [u8; 4] = [0; 4];
@@ -199,15 +261,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 	}
 
 	let mut packet_data: [u8; 16192] = [0; 16192];
-
 	let littlePacket = s4Packet::create_from_bytes(&header);
-	/*
-	println!("Version: {:x?}", littlePacket.socks_version);
-	println!("Command: {:x?}", littlePacket.command_type);
-	println!("Port: {}", littlePacket.socks_port);
-	println!("Address: {}", littlePacket.ip_address);
-	*/
-
 	let mut server_client_syn: u32 = 0;
 	let mut client_server_syn: u32 = 0;
 
@@ -220,13 +274,11 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 	{
 		Ok(v) =>
 		{
-			//println!("Connected to the server!");
 			client_stream.write(&[0, 90, 0, 0, 0, 0, 0, 0]).unwrap();
 			v
 		}
 		Err(_) =>
 		{
-			//println!("Couldn't connect to server...");
 			client_stream.write(&[0, 91, 0, 0, 0, 0, 0, 0]).unwrap();
 			return;
 		}
@@ -275,7 +327,6 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 	let src_port = client_stream.local_addr().unwrap().port().to_string();
 
 	let state_data = streamState::new(
-		// dummy data
 		dest_ip.clone(),
 		dest_port.clone(),
 		src_ip.clone(),
@@ -320,55 +371,16 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 			error_and_exit(file!(), line!(), "Failed to lock global intercept.");
 		}
 		
-		let mut current_command : Option<commandState> = None;
-		
-		if let Ok(mut unlocked_command) = global_state.commands.lock()
-		{
-			current_command = match unlocked_command.get_mut(&state_id)
-				{
-					Some(v) => v.pop_front(),
-					None => None,
-				};
-		}
-		
-		let real_command = match current_command 
-		{
-			Some(v) => v,
-			_ => continue,
-		};
-		
 		let mut client_to_server_bytes = Vec::new();
-		
-		match real_command.command.as_ref()
+		if let Some(connection_string) = process_command(global_state.clone(), &state_id, &mut repeater, &mut intercept, 
+		&client_to_server_bytes)
 		{
-			"repeat_packet" => 
+			echo_tcpstream = match TcpStream::connect(connection_string)
 			{
-				client_to_server_bytes = real_command.parameters[0].clone();
-				repeater = true;
-			},		
-			"toggle_intercept" => 
-			{
-				let toggle_flag: String =
-					String::from_utf8(real_command.parameters[0].clone()).expect("Invalid UTF8 in toggle flag.");
-				match toggle_flag.as_ref()
-				{
-					"true" => 
-					{
-						intercept = true;
-						let connection_string: String =
-							String::from_utf8(real_command.parameters[1].clone()).expect("Invalid UTF8 in connection string.");
-						echo_tcpstream = match TcpStream::connect(connection_string)
-						{
-							Ok(v) => Some(v),
-							Err(_) => None,
-						};
-					},
-					"false" => intercept = false,
-					_ => error_and_continue(file!(),line!(),"Invalid toggle value: must be true or false"),
-				};
-			}
-			_ => error_and_continue(file!(),line!(),"Invalid command: invalid number of parameters"),
-		};
+				Ok(v) => Some(v),
+				Err(_) => None,
+			};
+		}
 		
 		if repeater == true 
 		{
@@ -473,10 +485,27 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 							panic!("No echo stream found.");
 						},
 					};
+					
+				client_to_server_bytes = echo_send_and_receive_packet(&mut temp_tcpstream, client_to_server_bytes);
+				echo_tcpstream = Some(temp_tcpstream);
+				
+				}
+				
+				if let Ok(mut unlocked_global) = global_state.global_intercept.lock()
+				{
+					match *unlocked_global
+					{
+						true =>
+						{
+							thread::sleep(time::Duration::from_millis(10));
+							continue;
+						},
+						false => break,
+					}
 				}
 				else
 				{
-					thread::sleep(time::Duration::from_millis(10));
+					error_and_exit(file!(), line!(), "Failed to lock global intercept.");
 				}
 			}
 			
