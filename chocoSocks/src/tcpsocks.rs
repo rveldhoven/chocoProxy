@@ -137,10 +137,10 @@ fn process_command(
 	}
 }
 
-thread_local!{
-	pub static mut receiver_syn_t: RefCell<u32> = RefCell::new(0); // server_client_syn
-	pub static mut sender_syn_t: RefCell<u32> = RefCell::new(0); // client_server_syn
-	}
+thread_local! {
+	pub static RECEIVER_SYN_T: RefCell<u32> = RefCell::new(0); 
+	pub static SENDER_SYN_T: RefCell<u32> = RefCell::new(0);
+}
 
 fn send_to_stream(
 	mut global_state: globalState, 
@@ -151,11 +151,11 @@ fn send_to_stream(
 	file: &mut File
 	) -> bool
 {
-	let receiver_syn = receiver_syn_t.with(|syn| {
-        *syn.borrow().clone();
+	let receiver_syn = RECEIVER_SYN_T.with(|syn| {
+        syn.borrow().clone()
     });
-	let sender_syn = sender_syn_t.with(|syn| {
-        *syn.borrow().clone();
+	let sender_syn = SENDER_SYN_T.with(|syn| {
+        syn.borrow().clone()
     });
 
 	save_to_pcap(
@@ -167,8 +167,8 @@ fn send_to_stream(
 		&mut file
 	);
 	
-	sender_syn_t.with(|syn| {
-        *syn.borrow_mut() = *syn.borrow_mut().wrapping_add(packet_bytes.len() as u32);
+	SENDER_SYN_T.with(|syn| {
+        syn.borrow_mut() = syn.borrow_mut().wrapping_add(packet_bytes.len() as u32);
     });
 
 	if let Err(_) = receiving_stream.write(&packet_bytes)
