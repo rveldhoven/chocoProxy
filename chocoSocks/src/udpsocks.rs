@@ -31,9 +31,8 @@ use std::{
 
 use std::os::windows::fs::OpenOptionsExt;
 
-const FILE_SHARE_READ: u32 = 1;
-const FILE_SHARE_WRITE: u32 = 2;
-const FILE_SHARE_DELETE: u32 = 4;
+const REQUEST_MODE_WRITE: u8 = 1;
+const REQUEST_MODE_READ: u8 = 2;
 
 use crate::{
 	command::*,
@@ -176,15 +175,19 @@ pub fn handle_udp_client(mut client_stream: TcpStream, mut global_state: globalS
 	}
 	else
 	{
-		error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
+		error_and_exit(file!(), line!(), "Failed to lock udpstreams");
 	}
 
 	loop
 	{
-		
-		
-		
-		
+		if request_struct.request_mode == REQUEST_MODE_WRITE
+		{
+			save_udp_to_pcap(&packet_bytes, &0, &request_struct.ip, &mut file);
+		}
+		else
+		{
+			save_udp_to_pcap(&packet_bytes, &request_struct.ip, &0, &mut file);
+		}
 	}
 }
 
