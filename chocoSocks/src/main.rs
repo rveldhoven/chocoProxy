@@ -6,6 +6,7 @@ pub mod globalstate;
 pub mod pcap;
 pub mod python;
 pub mod tcpsocks;
+pub mod udpsocks;
 
 use std::{
 	env,
@@ -43,6 +44,7 @@ use crate::{
 	pcap::*,
 	python::*,
 	tcpsocks::*,
+	udpsocks::*,
 };
 
 fn main()
