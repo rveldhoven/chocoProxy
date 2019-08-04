@@ -28,11 +28,6 @@ std::map<std::string, std::shared_ptr<cx86PrologueHook>> hook_library;
 std::recursive_mutex		connection_list_mutex;
 std::map<SOCKET, SOCKET>	connection_list;
 
-
-std::recursive_mutex									recvfrom_packet_list;
-std::map<SOCKET, std::vector<std::vector<uint8_t>>>		recvfrom_packets;
-
-
 void wsa_init()
 {
 	WSADATA wsa_data = {};
@@ -106,40 +101,6 @@ SOCKET connect_or_get_home_socket(SOCKET hooked_socket)
 	return INVALID_SOCKET;
 }
 
-void send_packet_home(SOCKET home_socket, const std::vector<uint8_t>& packet)
-{
-	uint32_t packet_size = packet.size();
-
-	std::vector<uint8_t> real_packet = std::vector<uint8_t>();
-	real_packet.insert(real_packet.begin(), (uint8_t*)& packet_size, (uint8_t*)& packet_size + sizeof(packet_size));
-	real_packet.insert(real_packet.end(), packet.begin(), packet.end());
-
-	send(home_socket, (const char*)real_packet.data(), packet.size(), 0);
-}
-
-size_t get_bytes_available(SOCKET home_socket)
-{
-	DWORD result = 0;
-	ioctlsocket(home_socket, FIONREAD, &result);
-
-	return result;
-}
-
-std::vector<uint8_t> receive_packet_from_home(SOCKET home_socket)
-{
-	uint8_t message_size[4] = {};
-	recv(home_socket, (char*)&message_size[0], 4, 0);
-
-	uint32_t size = *(uint32_t*)&message_size[0];
-
-	std::vector<uint8_t> packet;
-	packet.resize(size);
-
-	recv(home_socket, (char*)packet.data(), packet.size(), 0);
-
-	return packet;
-}
-
 std::vector<uint8_t> send_receive(SOCKET home_socket, const std::vector<uint8_t>& data)
 {
 	if (data.size() == 0)
@@ -182,6 +143,18 @@ std::vector<uint8_t> send_receive(SOCKET home_socket, const std::vector<uint8_t>
 	return recv_buffer;
 }
 
+#define request_mode_write 1
+#define request_mode_read 2
+
+#pragma pack(push, 1)
+struct UDPRequest
+{
+	uint8_t		mode;
+	uint32_t	ip;
+	uint16_t	port;
+};
+#pragma pack(pop)
+
 typedef int(WSAAPI* tsendto)(
 	SOCKET         s,
 	const char* buf,
@@ -213,7 +186,13 @@ int WINAPI hooked_sendto(
 
 	memcpy((void*)first_buffer.data(), buf, len);
 
-	std::vector<uint8_t> second_buffer = send_receive(s, first_buffer, false);
+	UDPRequest request = {};
+	request.mode = request_mode_write;
+	request.ip = ((SOCKADDR_IN*)to)->sin_addr.S_un.S_addr;
+	request.port = ((SOCKADDR_IN*)to)->sin_port;
+	first_buffer.insert(first_buffer.begin(), (uint8_t*)& request, (uint8_t*)& request + sizeof(request));
+
+	std::vector<uint8_t> second_buffer = send_receive(s, first_buffer);
 
 	if (second_buffer.size() > 0)
 		return o_send_to(s, (char*)second_buffer.data(), second_buffer.size(), flags, to, tolen);
@@ -221,16 +200,54 @@ int WINAPI hooked_sendto(
 		return o_send_to(s, buf, len, flags, to, tolen);
 }
 
+typedef int(WSAAPI* trecvfrom)(
+	SOCKET   s,
+	char* buf,
+	int      len,
+	int      flags,
+	sockaddr* from,
+	int* fromlen
+	);
+
+trecvfrom o_recv_from = nullptr;
+
 int WINAPI hooked_recvfrom(
 	SOCKET   s,
-	char*	 buf,
+	char* buf,
 	int      len,
 	int      flags,
 	sockaddr* from,
 	int* fromlen
 )
 {
+	if (o_recv_from == nullptr)
+		o_recv_from = (trecvfrom)hook_library["recvfrom"]->hook_get_trampoline_end();
 
+	auto result = o_recv_from(s, buf, len, flags, from, fromlen);
+
+	if (result == SOCKET_ERROR)
+		return result;
+
+	std::vector<uint8_t> first_buffer;
+
+	first_buffer.resize(result);
+
+	memcpy((void*)first_buffer.data(), buf, result);
+
+	UDPRequest request = {};
+	request.mode = request_mode_read;
+	request.ip = ((SOCKADDR_IN*)from)->sin_addr.S_un.S_addr;
+	request.port = ((SOCKADDR_IN*)from)->sin_port;
+	first_buffer.insert(first_buffer.begin(), (uint8_t*)& request, (uint8_t*)& request + sizeof(request));
+
+	std::vector<uint8_t> second_buffer = send_receive(s, first_buffer);
+
+	if (second_buffer.size() > len)
+		return result;
+
+	memcpy(buf, second_buffer.data(), second_buffer.size());
+
+	return second_buffer.size();
 }
 
 void set_hook(const std::string& module, const std::string& function, void* to_location)
