@@ -140,23 +140,58 @@ std::vector<uint8_t> receive_packet_from_home(SOCKET home_socket)
 	return packet;
 }
 
-#define REQUEST_MODE_WRITE 1
-#define REQUEST_MODE_READ 2
-
-#pragma pack(push, 1)
-struct UDPRequest
+std::vector<uint8_t> send_receive(SOCKET home_socket, const std::vector<uint8_t>& data)
 {
-	uint8_t request_mode;
-	uint32_t dest_ipv4_ip;
-	uint16_t dest_udp_port;
-};
+	if (data.size() == 0)
+		return std::vector<uint8_t>();
+	
+	std::vector<uint8_t> send_size_buffer;
 
-struct UDPResponse
-{
-	uint32_t src_ipv4_ip;
-	uint16_t src_udp_port;
-};
-#pragma pack(pop)
+	uint32_t send_size = data.size();
+
+	send(home_socket, (char*)send_size_buffer.data(), send_size_buffer.size(), 0);
+	send(home_socket, (char*)data.data(), data.size(), 0);
+
+	bool is_done = true;
+	std::vector<uint8_t> recv_size_buffer;
+	std::vector<uint8_t> recv_buffer;
+
+	do
+	{
+		recv_buffer.clear();
+		recv_size_buffer.clear();
+
+		is_done = true;
+
+		recv_size_buffer.resize(sizeof(uint32_t));
+
+		recv(home_socket, (char*)recv_size_buffer.data(), recv_size_buffer.size(), 0);
+
+		uint32_t recv_size = *(uint32_t*)recv_size_buffer.data();
+
+		if (recv_size == 0xffffffff)
+		{
+			is_done = false;
+			continue;
+		}
+
+		recv_buffer.resize(recv_size);
+		recv(home_socket, (char*)recv_buffer.data(), recv_buffer.size(), 0);
+	} while (is_done == false);
+
+	return recv_buffer;
+}
+
+typedef int(WSAAPI* tsendto)(
+	SOCKET         s,
+	const char* buf,
+	int            len,
+	int            flags,
+	const sockaddr* to,
+	int            tolen
+	);
+
+tsendto o_send_to = nullptr;
 
 int WINAPI hooked_sendto(
 	SOCKET         s,
@@ -169,21 +204,21 @@ int WINAPI hooked_sendto(
 {
 	SOCKET home_socket = connect_or_get_home_socket(s);
 
-	if (home_socket == INVALID_SOCKET)
-		return SOCKET_ERROR;
+	if (o_send_to == nullptr)
+		o_send_to = (tsendto)hook_library["sendto"]->hook_get_trampoline_end();
 
-	UDPRequest send_request = {};
-	send_request.request_mode = REQUEST_MODE_WRITE;
-	send_request.dest_ipv4_ip = ((SOCKADDR_IN*)to)->sin_addr.S_un.S_addr;
-	send_request.dest_udp_port = ((SOCKADDR_IN*)to)->sin_port;
+	std::vector<uint8_t> first_buffer;
 
-	std::vector<uint8_t> write_request;
-	write_request.insert(write_request.begin(), (uint8_t*)& send_request, (uint8_t*)& send_request + sizeof(send_request));
-	write_request.insert(write_request.end(), (uint8_t*)buf, (uint8_t*)buf + len);
+	first_buffer.resize(len);
 
-	send_packet_home(home_socket, write_request);
+	memcpy((void*)first_buffer.data(), buf, len);
 
-	return len;
+	std::vector<uint8_t> second_buffer = send_receive(s, first_buffer, false);
+
+	if (second_buffer.size() > 0)
+		return o_send_to(s, (char*)second_buffer.data(), second_buffer.size(), flags, to, tolen);
+	else
+		return o_send_to(s, buf, len, flags, to, tolen);
 }
 
 int WINAPI hooked_recvfrom(
@@ -195,33 +230,7 @@ int WINAPI hooked_recvfrom(
 	int* fromlen
 )
 {
-	// If this socket is a server socket then this function will fail
-	// Only UDP client sockets (ones that call sendto before recvfrom) are supported
-	SOCKET home_socket = connect_or_get_home_socket(s);
 
-	if (home_socket == INVALID_SOCKET)
-		return SOCKET_ERROR;
-
-	UDPRequest send_request = {};
-	send_request.request_mode = REQUEST_MODE_READ;
-	send_request.dest_ipv4_ip = 0;
-	send_request.dest_udp_port = 0;
-
-	std::vector<uint8_t> read_request;
-	read_request.insert(read_request.begin(), (uint8_t*)&send_request, (uint8_t*)&send_request + sizeof(send_request));
-
-	send_packet_home(home_socket, read_request);
-
-	auto response = receive_packet_from_home(home_socket);
-
-	UDPResponse* udp_response = (UDPResponse*)response.data();
-
-	((SOCKADDR_IN*)from)->sin_addr.S_un.S_addr = udp_response->src_ipv4_ip;
-	((SOCKADDR_IN*)from)->sin_port = udp_response->src_udp_port;
-
-	memcpy(buf, &response[sizeof(UDPResponse)], response.size() - sizeof(UDPResponse));
-
-	return response.size() - sizeof(UDPResponse);
 }
 
 void set_hook(const std::string& module, const std::string& function, void* to_location)

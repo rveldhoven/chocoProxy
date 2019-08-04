@@ -95,6 +95,30 @@ fn main()
 		command_client_handler(global_state_clone);
 	});
 
+	let udp_socks_global_state = global_state.clone();
+	
+	let udp_socks_thread = thread::spawn(move || {
+		
+		let udp_socks_listener = match TcpListener::bind(
+			udp_socks_global_state.argv_options["--udp-proxy-ip"].clone()
+			+ &":".to_string()
+			+ &udp_socks_global_state.argv_options["--udp-proxy-port"].clone(),
+		)
+		{
+			Ok(v) => v,
+			Err(_) => panic!("Failed to open TCP listener for UDP client socks."),
+		};
+		
+		for stream in udp_socks_listener.incoming()
+		{
+			let thread_global_state = udp_socks_global_state.clone();
+			let thread = thread::spawn(move || {
+				handle_udp_client(stream.expect("Connection failed"), thread_global_state);
+			});
+		}
+		
+	});
+	
 	/* ================== TCP listener ================== */
 
 	let tcp_listener = match TcpListener::bind(
@@ -104,7 +128,7 @@ fn main()
 	)
 	{
 		Ok(v) => v,
-		Err(_) => panic!("Failed to open TCP listener."),
+		Err(_) => panic!("Failed to open TCP listener for TCP client socks."),
 	};
 
 	for stream in tcp_listener.incoming()
