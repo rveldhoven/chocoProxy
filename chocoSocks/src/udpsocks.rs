@@ -106,9 +106,11 @@ pub fn handle_udp_client(mut client_stream: TcpStream, mut global_state: globalS
 	let mut request_struct = UDPRequest
 	{ 
 		request_mode: 0,
-		dest_ipv4_ip: IpAddr::new(0,0,0,0),
+		dest_ipv4_ip: Ipv4Addr::new(0,0,0,0),
 		dest_udp_port: 0,
-	}
+	};
+	
+	
 
 	loop
 	{

@@ -103,8 +103,8 @@ fn process_command(
 	{
 		"repeat_packet" => 
 		{
-			client_to_server_bytes = real_command.parameters[0].clone();
-			repeater = &mut true;
+			*client_to_server_bytes = real_command.parameters[0].clone();
+			*repeater = true;
 			None
 		},		
 		"toggle_intercept" => 
@@ -115,7 +115,7 @@ fn process_command(
 			{
 				"true" => 
 				{
-					intercept = &mut true;
+					*intercept = true;
 					let connection_string: String =
 						String::from_utf8(real_command.parameters[1].clone()).expect("Invalid UTF8 in connection string.");
 					Some(connection_string)
@@ -371,9 +371,8 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 			error_and_exit(file!(), line!(), "Failed to lock global intercept.");
 		}
 		
-		let mut client_to_server_bytes = Vec::new();
-		if let Some(connection_string) = process_command(global_state.clone(), &state_id, &mut repeater, &mut intercept, 
-		&client_to_server_bytes)
+		let mut client_to_server_bytes : Vec<u8> = Vec::new();
+		if let Some(connection_string) = process_command(global_state.clone(), &state_id, &mut repeater, &mut intercept, &mut client_to_server_bytes)
 		{
 			echo_tcpstream = match TcpStream::connect(connection_string)
 			{
