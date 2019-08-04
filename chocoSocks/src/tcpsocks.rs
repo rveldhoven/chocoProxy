@@ -27,6 +27,7 @@ use std::{
 		SystemTime,
 		UNIX_EPOCH,
 	},
+	cell::RefCell,
 };
 
 use std::os::windows::fs::OpenOptionsExt;
@@ -79,7 +80,7 @@ fn process_command(
 	state_id: &String, 
 	repeater: &mut bool, 
 	intercept: &mut bool, 
-	client_to_server_bytes: &mut Vec<u8>,
+	client_to_server_bytes: &mut Vec<u8>
 ) -> Option<String>
 {
 	let mut current_command : Option<commandState> = None;
@@ -134,6 +135,57 @@ fn process_command(
 			None
 		},
 	}
+}
+
+thread_local!{
+	pub static mut receiver_syn_t: RefCell<u32> = RefCell::new(0); // server_client_syn
+	pub static mut sender_syn_t: RefCell<u32> = RefCell::new(0); // client_server_syn
+	}
+
+fn send_to_stream(
+	mut global_state: globalState, 
+	sending_stream: &mut TcpStream, 
+	receiving_stream: &mut TcpStream, 
+	packet_bytes : Vec<u8>,
+	state_id: &String,
+	file: &mut File
+	) -> bool
+{
+	let receiver_syn = receiver_syn_t.with(|syn| {
+        *syn.borrow().clone();
+    });
+	let sender_syn = sender_syn_t.with(|syn| {
+        *syn.borrow().clone();
+    });
+
+	save_to_pcap(
+		&packet_bytes,
+		&0,
+		&1,
+		&sender_syn,
+		&receiver_syn,
+		&mut file
+	);
+	
+	sender_syn_t.with(|syn| {
+        *syn.borrow_mut() = *syn.borrow_mut().wrapping_add(packet_bytes.len() as u32);
+    });
+
+	if let Err(_) = receiving_stream.write(&packet_bytes)
+	{
+		sending_stream.shutdown(Shutdown::Both);
+
+		if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock()
+		{
+			unlocked_streams.remove(state_id);
+		}
+		else
+		{
+			error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
+		}
+		false
+	}
+	true
 }
 
 fn echo_send_and_receive_packet(echo_tcpstream: &mut TcpStream, packet_bytes : Vec<u8>) -> Vec<u8>
@@ -262,8 +314,6 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 
 	let mut packet_data: [u8; 16192] = [0; 16192];
 	let littlePacket = s4Packet::create_from_bytes(&header);
-	let mut server_client_syn: u32 = 0;
-	let mut client_server_syn: u32 = 0;
 
 	let connection = SocketAddr::new(IpAddr::V4(littlePacket.ip_address), littlePacket.socks_port);
 	println!(
@@ -383,7 +433,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		
 		if repeater == true 
 		{
-			save_to_pcap(
+/*			save_to_pcap(
 				&client_to_server_bytes,
 				&0,
 				&1,
@@ -407,9 +457,9 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 					error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
 				}
 				break;
-			}
+			}*/
 			activity = true;
-		}
+		} 
 		
 		/* ================== Receive from server ================== */
 		
@@ -432,7 +482,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 				server_to_client_bytes,
 			);
 
-			save_to_pcap(
+/*			save_to_pcap(
 				&server_to_client_bytes,
 				&1,
 				&0,
@@ -456,8 +506,8 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 					error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
 				}
 
-				break;
-			}
+				break; 
+			}*/
 			activity = true;
 		}
 		
@@ -536,7 +586,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 				);
 			}
 
-			save_to_pcap(
+/*			save_to_pcap(
 				&client_to_server_bytes,
 				&0,
 				&1,
@@ -561,7 +611,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 				}
 
 				break;
-			}
+			} */
 			activity = true;
 		}
 		
