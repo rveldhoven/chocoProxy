@@ -194,7 +194,7 @@ int WINAPI hooked_sendto(
 	request.port = ((SOCKADDR_IN*)to)->sin_port;
 	first_buffer.insert(first_buffer.begin(), (uint8_t*)& request, (uint8_t*)& request + sizeof(request));
 
-	std::vector<uint8_t> second_buffer = send_receive(s, first_buffer);
+	std::vector<uint8_t> second_buffer = send_receive(home_socket, first_buffer);
 
 	if (second_buffer.size() > 0)
 		return o_send_to(s, (char*)second_buffer.data(), second_buffer.size(), flags, to, tolen);
@@ -222,6 +222,8 @@ int WINAPI hooked_recvfrom(
 	int* fromlen
 )
 {
+	SOCKET home_socket = connect_or_get_home_socket(s);
+	
 	if (o_recv_from == nullptr)
 		o_recv_from = (trecvfrom)hook_library["recvfrom"]->hook_get_trampoline_end();
 
@@ -242,7 +244,7 @@ int WINAPI hooked_recvfrom(
 	request.port = ((SOCKADDR_IN*)from)->sin_port;
 	first_buffer.insert(first_buffer.begin(), (uint8_t*)& request, (uint8_t*)& request + sizeof(request));
 
-	std::vector<uint8_t> second_buffer = send_receive(s, first_buffer);
+	std::vector<uint8_t> second_buffer = send_receive(home_socket, first_buffer);
 
 	if (second_buffer.size() > len)
 		return result;
