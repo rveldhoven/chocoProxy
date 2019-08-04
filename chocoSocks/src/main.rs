@@ -55,6 +55,8 @@ fn main()
 
 	let mut proxy_ip_set: bool = false;
 	let mut proxy_port_set: bool = false;
+	let mut udp_proxy_ip_set: bool = false;
+	let mut udp_proxy_port_set: bool = false;
 	let mut manager_ip_set: bool = false;
 	let mut manager_port_set: bool = false;
 	let mut pcap_dir_set: bool = false;
@@ -68,6 +70,8 @@ fn main()
 		{
 			"--proxy-ip" => proxy_ip_set = true,
 			"--proxy-port" => proxy_port_set = true,
+			"--udp-proxy-ip" => udp_proxy_ip_set = true,
+			"--udp-proxy-port" => udp_proxy_port_set = true,
 			"--manager-ip" => manager_ip_set = true,
 			"--manager-port" => manager_port_set = true,
 			"--pcap-dir" => pcap_dir_set = true,
@@ -79,9 +83,9 @@ fn main()
 			.insert(arg_name.clone(), arg_val.clone());
 	}
 
-	if proxy_ip_set == false || proxy_port_set == false || pcap_dir_set == false
-	{
-		error_and_exit(file!(), line!(), "Options missing: specify --proxy-ip <ip>, --proxy-port <port>, --manager-ip <ip>, --manager-port <port> and --pcap-dir <path>");
+	if proxy_ip_set == false || proxy_port_set == false || pcap_dir_set == false || udp_proxy_ip_set == false || udp_proxy_port_set == false || manager_ip_set == false || manager_port_set == false
+	{ 
+		error_and_exit(file!(), line!(), "Options missing: specify --proxy-ip <ip>, --proxy-port <port>, --udp-proxy-ip <ip>, --udp-proxy-port <port>, --manager-ip <ip>, --manager-port <port> and --pcap-dir <path>");
 	}
 
 	/* ================== Command listener ================== */
