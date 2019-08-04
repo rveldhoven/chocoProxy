@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="cHooks">
+      <UniqueIdentifier>{f9b38fdb-dda7-466e-8213-8ece8592e818}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\chocoDLL\x64_hook.cpp">
+      <Filter>cHooks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\chocoDLL\x86_hook.cpp">
+      <Filter>cHooks</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\chocoDLL\x64_hook.hpp">
+      <Filter>cHooks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chocoDLL\x86_hook.hpp">
+      <Filter>cHooks</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

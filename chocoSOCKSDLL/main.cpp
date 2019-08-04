@@ -76,6 +76,7 @@ void connect_home(SOCKET temp_socket, const std::string& ip, const uint16_t port
 		throw std::runtime_error("Error: failed to connect");
 }
 
+#pragma pack(push, 1)
 struct SOCKS4Request
 {
 	uint8_t socks_version;
@@ -91,6 +92,7 @@ struct SOCKS4Response
 	uint16_t socks_port;
 	uint32_t socks_ip;
 };
+#pragma pack(pop)
 
 int WSAAPI hooked_connect(
 	SOCKET         s,

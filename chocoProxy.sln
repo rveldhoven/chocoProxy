@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chocoInjector", "chocoInjec
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "chocoGUI", "chocoGUI\chocoGUI.csproj", "{C49DC233-6CFF-498F-B129-5D1673B37F97}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chocoUDPDLL", "chocoUDPDLL\chocoUDPDLL.vcxproj", "{DB90983A-4BE7-48BC-AB74-F4EC207A03A5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +65,16 @@ Global
 		{C49DC233-6CFF-498F-B129-5D1673B37F97}.Release|x64.Build.0 = Release|Any CPU
 		{C49DC233-6CFF-498F-B129-5D1673B37F97}.Release|x86.ActiveCfg = Release|Any CPU
 		{C49DC233-6CFF-498F-B129-5D1673B37F97}.Release|x86.Build.0 = Release|Any CPU
+		{DB90983A-4BE7-48BC-AB74-F4EC207A03A5}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{DB90983A-4BE7-48BC-AB74-F4EC207A03A5}.Debug|x64.ActiveCfg = Debug|x64
+		{DB90983A-4BE7-48BC-AB74-F4EC207A03A5}.Debug|x64.Build.0 = Debug|x64
+		{DB90983A-4BE7-48BC-AB74-F4EC207A03A5}.Debug|x86.ActiveCfg = Debug|Win32
+		{DB90983A-4BE7-48BC-AB74-F4EC207A03A5}.Debug|x86.Build.0 = Debug|Win32
+		{DB90983A-4BE7-48BC-AB74-F4EC207A03A5}.Release|Any CPU.ActiveCfg = Release|Win32
+		{DB90983A-4BE7-48BC-AB74-F4EC207A03A5}.Release|x64.ActiveCfg = Release|x64
+		{DB90983A-4BE7-48BC-AB74-F4EC207A03A5}.Release|x64.Build.0 = Release|x64
+		{DB90983A-4BE7-48BC-AB74-F4EC207A03A5}.Release|x86.ActiveCfg = Release|Win32
+		{DB90983A-4BE7-48BC-AB74-F4EC207A03A5}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
