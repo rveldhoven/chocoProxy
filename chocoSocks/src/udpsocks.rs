@@ -117,6 +117,9 @@ pub fn handle_udp_client(mut client_stream: TcpStream, mut global_state: globalS
 	let mut echo_tcpstream : Option<TcpStream> = None;
 
 	packet_bytes = receive_packet_from_client(&mut client_stream);
+	
+	dbg!(&packet_bytes);
+	
 	request_struct = UDPRequest::create_from_bytes(&packet_bytes[0..7]);
 
 	let dest_ip = Ipv4Addr::new(packet_bytes[1], packet_bytes[2], packet_bytes[3], packet_bytes[4]);
