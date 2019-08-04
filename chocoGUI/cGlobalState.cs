@@ -6,7 +6,6 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace chocoGUI
 {
@@ -36,6 +35,19 @@ namespace chocoGUI
         public string stream_start { get; set; }
     }
 
+    public class cUDPStream
+    {
+        public string source_process_pid { get; set; }
+        public string source_process_name { get; set; }
+        public string source_ip { get; set; }
+        public string destination_ip { get; set; }
+        public string source_port { get; set; }
+        public string destination_port { get; set; }
+        public string backend_file { get; set; }
+        public bool proxy_connected { get; set; }
+        public string stream_start { get; set; }
+    }
+
     public class cCommand
     {
         public string command { get; set; }
@@ -52,6 +64,9 @@ namespace chocoGUI
     {
         private static object           _tcp_streams_mutex = new object();
         private static List<cTCPStream> _tcp_streams = new List<cTCPStream>();
+
+        private static object _udp_streams_mutex = new object();
+        private static List<cUDPStream> _udp_streams = new List<cUDPStream>();
 
         private static object _proxy_process_mutex = new object();
         private static List<cProxyProcess> _proxy_process_list = new List<cProxyProcess>();
@@ -132,7 +147,7 @@ namespace chocoGUI
 
         #region background setters
         
-        private static void background_update_streams()
+        private static void background_update_tcp_streams()
         {
             cCommand active_streams_struct = new cCommand
             {
@@ -163,6 +178,46 @@ namespace chocoGUI
                     lock (_tcp_streams_mutex)
                     {
                         _tcp_streams.AddRange(tcp_streams);
+                    }
+                }
+                catch (Exception e)
+                {
+                    continue;
+                }
+            }
+        }
+
+        private static void background_update_udp_streams()
+        {
+            cCommand active_streams_struct = new cCommand
+            {
+                command = "active_udp_streams",
+                parameters = new List<List<byte>>(),
+            };
+
+            string active_streams_command = JsonConvert.SerializeObject(active_streams_struct);
+
+            lock (_udp_streams_mutex)
+            {
+                _udp_streams.Clear();
+            }
+
+            List<cProxyProcess> proxy_list = ui_proxy_process_get();
+
+            foreach (var proxy in proxy_list)
+            {
+                string string_received = send_and_receive_command(proxy, active_streams_command);
+
+                try
+                {
+                    List<cUDPStream> udp_streams = JsonConvert.DeserializeObject<List<cUDPStream>>(string_received);
+
+                    for (int i = 0; i < udp_streams.Count; i++)
+                        udp_streams[i].source_process_name = proxy.proxy_process_metadata;
+
+                    lock (_udp_streams_mutex)
+                    {
+                        _udp_streams.AddRange(udp_streams);
                     }
                 }
                 catch (Exception e)
@@ -207,8 +262,9 @@ namespace chocoGUI
         private static void background_main()
         {
             int tcp_stream_update_counter = 0;
+            int udp_stream_update_counter = 3;
             int scripts_update_counter = 5;
-            int proxy_provess_update_counter = 0;
+            int proxy_process_update_counter = 0;
 
             while (_background_is_running == true)
             {
@@ -217,7 +273,14 @@ namespace chocoGUI
                 {
                     tcp_stream_update_counter = 0;
 
-                    background_update_streams();
+                    background_update_tcp_streams();
+                }
+
+                if (udp_stream_update_counter++ > 10)
+                {
+                    udp_stream_update_counter = 0;
+
+                    background_update_udp_streams();
                 }
 
                 if (scripts_update_counter++ > 10)
@@ -228,7 +291,7 @@ namespace chocoGUI
                 }
 
                 // Updates the view on running proxies
-                if(proxy_provess_update_counter++ > 5)
+                if(proxy_process_update_counter++ > 5)
                 {
                     lock (_proxy_process_mutex)
                     {
@@ -282,6 +345,19 @@ namespace chocoGUI
             return result;
         }
 
+        public static List<cUDPStream> ui_udp_streams_get()
+        {
+            List<cUDPStream> result = new List<cUDPStream>();
+
+            lock (_udp_streams_mutex)
+            {
+                result.AddRange(_udp_streams);
+            }
+
+            return result;
+        }
+
+
         public static List<cProxyProcess> ui_proxy_process_get()
         {
             List<cProxyProcess> result = new List<cProxyProcess>();
@@ -306,7 +382,7 @@ namespace chocoGUI
 
         #region UI setters
 
-        public static bool ui_proxy_process_start(string metadata, string ip, string port, string m_ip, string m_port)
+        public static bool ui_proxy_process_start(string metadata, string ip, string port, string u_ip, string u_port, string m_ip, string m_port)
         {
             bool metadata_unique = false;
 
@@ -331,7 +407,7 @@ namespace chocoGUI
 
             string pcap_dir = "proxy_" + ip + "_" + port + "m_" + m_ip + "_" + m_port;
 
-            new_proxy.StartInfo.Arguments = "--proxy-ip " + ip + " --proxy-port " + port + " --manager-ip " + m_ip + " --manager-port " + m_port + " --pcap-dir " + pcap_dir;
+            new_proxy.StartInfo.Arguments = "--proxy-ip " + ip + " --proxy-port " + port + " --udp-proxy-ip " + u_ip + " --udp-proxy-port " + u_port + " --manager-ip " + m_ip + " --manager-port " + m_port + " --pcap-dir " + pcap_dir;
             new_proxy.StartInfo.FileName = "chocoSocks.exe";
 
             bool result = new_proxy.Start();

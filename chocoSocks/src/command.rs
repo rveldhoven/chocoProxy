@@ -77,6 +77,15 @@ fn handle_command_client(mut command_stream: TcpStream, mut global_state: global
 					.write(&(streams_string.len() as u32).to_ne_bytes())
 					.unwrap();
 				command_stream.write(&streams_string.as_bytes()).unwrap();
+			},
+			"active_udp_streams" =>
+			{
+				let mut streams_data = active_udp_streams(command_global_state);
+				let mut streams_string = serde_json::to_string(&streams_data).unwrap();
+				command_stream
+					.write(&(streams_string.len() as u32).to_ne_bytes())
+					.unwrap();
+				command_stream.write(&streams_string.as_bytes()).unwrap();
 			}
 			"active_scripts" =>
 			{
@@ -86,27 +95,27 @@ fn handle_command_client(mut command_stream: TcpStream, mut global_state: global
 					.write(&(scripts_string.len() as u32).to_ne_bytes())
 					.unwrap();
 				command_stream.write(&scripts_string.as_bytes()).unwrap();
-			}
+			},
 			"delete_script" =>
 			{
 				delete_script(command_global_state, command_state.parameters);
-			}
+			},
 			"insert_script" =>
 			{
 				insert_script(command_global_state, command_state.parameters);
-			}
+			},
 			"repeat_packet" =>
 			{
 				repeat_packet(command_global_state, command_state.parameters);
-			}
+			},
 			"toggle_intercept" =>
 			{
 				toggle_intercept(command_global_state, command_state.parameters);
-			}
+			},
 			"global_intercept" =>
 			{
 				global_intercept(command_global_state, command_state.parameters);
-			}
+			},
 			_ => println!("Unknown command."),
 		}
 	}
@@ -139,6 +148,23 @@ fn active_streams(mut global_state: globalState) -> Vec<streamState>
 {
 	let mut vector_streams: Vec<streamState> = Vec::new();
 	if let Ok(mut unlocked_stream) = global_state.tcp_streams.lock()
+	{
+		for (_, val) in unlocked_stream.iter()
+		{
+			vector_streams.push((*val).clone());
+		}
+	}
+	else
+	{
+		error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
+	}
+	vector_streams
+}
+
+fn active_udp_streams(mut global_state: globalState) -> Vec<udpStreamState>
+{
+	let mut vector_streams: Vec<udpStreamState> = Vec::new();
+	if let Ok(mut unlocked_stream) = global_state.udp_streams.lock()
 	{
 		for (_, val) in unlocked_stream.iter()
 		{

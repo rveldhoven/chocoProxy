@@ -162,6 +162,33 @@ impl tcpHeader
 }
 
 #[repr(C)]
+pub struct udpHeader
+{
+    pub source_port: u16,
+    pub destination_port: u16,
+    pub length: u16,
+    pub checksum: u16
+}
+
+impl udpHeader
+{
+	pub fn create_header(
+		asource_port: u16,
+		adestination_port: u16,
+		alength: &u16,
+	) -> udpHeader
+	{
+		udpHeader
+		{
+			source_port: asource_port,
+			destination_port: adestination_port,
+			length: (*alength).to_be(),
+			checksum: 0,
+		}
+	}
+}
+
+#[repr(C)]
 pub struct pcapPacket
 {
 	ts_sec: u32,
@@ -325,6 +352,69 @@ pub fn save_to_pcap(
 		emit_ack(&current_packet, dst, src, &real_a_syn, b_syn, file);
 	}
 }
+
+
+fn emit_udp(packet_data: &Vec<u8>, src: &u32, dst: &u32, file: &mut File)
+{
+	let mut dport = 1;
+	let mut sport = 0;
+
+	if *src == 0
+	{
+		dport = 0;
+		sport = 1;
+	}
+
+	let eth = ethernetHeader::create_header();
+	let ip = ipHeader::create_header(
+		*src,
+		*dst,
+		(std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>())
+			.try_into()
+			.unwrap(),
+	);
+	let udp = udpHeader::create_header(sport, dport, &(packet_data.len() as u16));
+
+	let ether_data = unsafe { any_as_u8_slice(&eth) };
+	let ip_data = unsafe { any_as_u8_slice(&ip) };
+	let upd_data = unsafe { any_as_u8_slice(&udp) };
+
+	let mut data = Vec::new();
+
+	data.extend_from_slice(ether_data);
+	data.extend_from_slice(ip_data);
+	data.extend_from_slice(upd_data);
+
+	let real_packet = pcapPacket::create_from_bytes(&data[..]);
+
+	let pcap_header_bytes = unsafe { any_as_u8_slice(&real_packet) };
+
+	if let Err(_) = file.write(&pcap_header_bytes)
+	{
+		error_and_exit(file!(), line!(), "Failed to append pcap data to pcap");
+	}
+
+	if let Err(_) = file.write(&data[..])
+	{
+		error_and_exit(file!(), line!(), "Failed to append pcap data to pcap");
+	}
+
+	if let Err(_) = file.flush()
+	{
+		error_and_exit(file!(), line!(), "Failed to append pcap data to pcap");
+	}
+}
+
+pub fn save_udp_to_pcap(
+	packet_data: &Vec<u8>,
+	src: &u32,
+	dst: &u32,
+	file: &mut File,
+)
+{
+	emit_udp(packet_data, src, dst, file);
+}
+
 
 pub unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8]
 {

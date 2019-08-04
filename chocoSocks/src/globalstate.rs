@@ -62,6 +62,49 @@ impl streamState
 	}
 }
 
+#[repr(C)]
+#[derive(Serialize, Deserialize, Clone)]
+pub struct udpStreamState
+{
+	destination_ip: String,
+	destination_port: String,
+	source_ip: String,
+	source_port: String,
+	source_process_pid: String,
+	source_process_name: String,
+	backend_file: String,
+	proxy_connected: bool,
+	stream_start: String,
+}
+
+impl udpStreamState
+{
+	pub fn new(
+		destination_ip: String,
+		destination_port: String,
+		source_ip: String,
+		source_port: String,
+		source_process_pid: String,
+		source_process_name: String,
+		backend_file: String,
+		proxy_connected: bool,
+		stream_start: String,
+	) -> udpStreamState
+	{
+		udpStreamState {
+			destination_ip,
+			destination_port,
+			source_ip,
+			source_port,
+			source_process_pid,
+			source_process_name,
+			backend_file,
+			proxy_connected,
+			stream_start,
+		}
+	}
+}
+
 /* ================== Command global state ================== */
 
 #[repr(C)]
@@ -113,6 +156,7 @@ impl pythonScript
 pub struct globalState
 {
 	pub tcp_streams: Arc<Mutex<HashMap<String, streamState>>>,
+	pub udp_streams: Arc<Mutex<HashMap<String, udpStreamState>>>,
 	pub commands: Arc<Mutex<HashMap<String, VecDeque<commandState>>>>,
 	pub python_scripts: Arc<Mutex<HashMap<String, HashMap<String, pythonScript>>>>,
 	pub global_python_scripts: Arc<Mutex<HashMap<String, pythonScript>>>,
@@ -126,6 +170,7 @@ impl globalState
 	{
 		globalState {
 			tcp_streams: Arc::new(Mutex::new(HashMap::new())),
+			udp_streams: Arc::new(Mutex::new(HashMap::new())),
 			commands: Arc::new(Mutex::new(HashMap::new())),
 			python_scripts: Arc::new(Mutex::new(HashMap::new())),
 			global_python_scripts: Arc::new(Mutex::new(HashMap::new())),
