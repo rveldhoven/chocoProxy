@@ -48,6 +48,19 @@ namespace chocoGUI
 
             tcp_stream_view.View = tcp_gridview;
 
+
+            var udp_gridview = new GridView();
+
+            udp_gridview.Columns.Add(new GridViewColumn() { Header = "Source proxy", DisplayMemberBinding = new Binding("SourceProxy") });
+            udp_gridview.Columns.Add(new GridViewColumn() { Header = "Source IP", DisplayMemberBinding = new Binding("SourceIP") });
+            udp_gridview.Columns.Add(new GridViewColumn() { Header = "Destination IP", DisplayMemberBinding = new Binding("DestinationIP") });
+            udp_gridview.Columns.Add(new GridViewColumn() { Header = "Source port", DisplayMemberBinding = new Binding("SourcePort") });
+            udp_gridview.Columns.Add(new GridViewColumn() { Header = "Destination port", DisplayMemberBinding = new Binding("DestinationPort") });
+            udp_gridview.Columns.Add(new GridViewColumn() { Header = "Stream start", DisplayMemberBinding = new Binding("StreamStart") });
+            udp_gridview.Columns.Add(new GridViewColumn() { Header = "Proxy connected", DisplayMemberBinding = new Binding("ProxyConnected") });
+
+            udp_stream_view.View = udp_gridview;
+
             var proxy_gridview = new GridView();
 
             proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Proxy metadata", DisplayMemberBinding = new Binding("ProxyMetadata") });
@@ -84,6 +97,27 @@ namespace chocoGUI
 
                 if (tcp_stream_view.Items.Contains(stream_item) == false)
                     tcp_stream_view.Items.Add(stream_item);
+            }
+
+
+            var udp_streams = cGlobalState.ui_udp_streams_get();
+
+            foreach (var udp_stream in udp_streams)
+            {
+                object stream_item = new
+                {
+                    SourceProxy = udp_stream.source_process_name,
+                    SourceIP = udp_stream.source_ip,
+                    DestinationIP = udp_stream.destination_ip,
+                    SourcePort = udp_stream.source_port,
+                    DestinationPort = udp_stream.destination_port,
+                    StreamStart = udp_stream.stream_start,
+                    ProxyConnected = (udp_stream.proxy_connected == true ? "yes" : "no"),
+                    FileName = udp_stream.backend_file,
+                };
+
+                if (udp_stream_view.Items.Contains(stream_item) == false)
+                    udp_stream_view.Items.Add(stream_item);
             }
 
             var running_proxies = cGlobalState.ui_proxy_process_get();
@@ -135,7 +169,7 @@ namespace chocoGUI
 
         }
 
-        private void OpenStreamButton_Click(object send, RoutedEventArgs e)
+        private void OpenTCPStreamButton_Click(object send, RoutedEventArgs e)
         {
             if (tcp_stream_view.SelectedIndex == -1)
                 return;
@@ -145,9 +179,23 @@ namespace chocoGUI
             string pcap_file = (string)object_helper.get_object_value(display_object, "FileName");
             string stream_id = (string)object_helper.get_object_value(display_object, "StreamStart");
 
-            var stream_window = new StreamWindow(pcap_file, stream_id);
+            var stream_window = new StreamWindow(pcap_file, stream_id, "tcp");
             stream_window.Show();
         }
+        private void OpenUDPStreamButton_Click(object send, RoutedEventArgs e)
+        {
+            if (udp_stream_view.SelectedIndex == -1)
+                return;
+
+            var display_object = udp_stream_view.SelectedItem;
+
+            string pcap_file = (string)object_helper.get_object_value(display_object, "FileName");
+            string stream_id = (string)object_helper.get_object_value(display_object, "StreamStart");
+
+            var stream_window = new StreamWindow(pcap_file, stream_id, "udp");
+            stream_window.Show();
+        }
+
 
         private void Inject_button_Click(object sender, RoutedEventArgs e)
         {
@@ -168,7 +216,7 @@ namespace chocoGUI
 
             try
             {
-                if (cGlobalState.ui_proxy_process_start(proxy_edit_window.m_data, proxy_edit_window.ip, proxy_edit_window.port, proxy_edit_window.m_ip, proxy_edit_window.m_port) == false)
+                if (cGlobalState.ui_proxy_process_start(proxy_edit_window.m_data, proxy_edit_window.ip, proxy_edit_window.port, proxy_edit_window.u_ip, proxy_edit_window.u_port, proxy_edit_window.m_ip, proxy_edit_window.m_port) == false)
                     MessageBox.Show("Failed to start proxy process", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception error)

@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:chocoGUI"
         xmlns:control="clr-namespace:WpfHexaEditor;assembly=WPFHexaEditor"
         mc:Ignorable="d"
-        Title="TCP stream" Height="450" Width="800">
+        Title="Stream" Height="450" Width="800">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="90*"></RowDefinition>

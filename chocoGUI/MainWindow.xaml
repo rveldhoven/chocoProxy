@@ -37,11 +37,10 @@
                 </Grid>
             </TabItem>
             <TabItem Header="TCP streams">
-                <TabControl>
                     <ListView x:Name="tcp_stream_view" Height="365" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
                         <ListView.Resources>
                             <ContextMenu x:Key="tcp_stream_menu">
-                                <MenuItem Header="Open stream" Click="OpenStreamButton_Click"  Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                                <MenuItem Header="Open TCP stream" Click="OpenTCPStreamButton_Click"  Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
                                 <MenuItem Header="Save stream" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
                                 <MenuItem Header="Close connection" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
                             </ContextMenu>
@@ -54,9 +53,24 @@
                             </Style>
                         </ListView.ItemContainerStyle>
                     </ListView>
-                </TabControl>
             </TabItem>
             <TabItem Header="UDP streams">
+                <ListView x:Name="udp_stream_view" Height="365" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+                    <ListView.Resources>
+                        <ContextMenu x:Key="udp_stream_menu">
+                            <MenuItem Header="Open UDP stream" Click="OpenUDPStreamButton_Click"  Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                            <MenuItem Header="Save stream" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                            <MenuItem Header="Close connection" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                        </ContextMenu>
+                    </ListView.Resources>
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="{x:Type ListViewItem}">
+                            <Setter Property="BorderBrush" Value="LightGray" />
+                            <Setter Property="BorderThickness" Value="0,0,1,1" />
+                            <Setter Property="ContextMenu" Value="{StaticResource udp_stream_menu}" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                </ListView>
             </TabItem>
         </TabControl>
     </Grid>

@@ -25,6 +25,8 @@ namespace chocoGUI
     /// </summary>
     public partial class StreamWindow : Window
     {
+        private string _stream_type = "";
+
         private string _backend_file = null;
         private long _backend_size = 0;
         private string _stream_id = "";
@@ -114,20 +116,38 @@ namespace chocoGUI
                     var eth_packet = PacketDotNet.Packet.ParsePacket(capture.LinkLayerType, capture.Data);
 
                     PacketDotNet.IPPacket ip_packet = eth_packet.Extract<PacketDotNet.IPPacket>();
-                    PacketDotNet.TcpPacket tcp_packet = eth_packet.Extract<PacketDotNet.TcpPacket>();
-
-                    _packet_bytes.Add(tcp_packet.PayloadData.ToList());
-
-                    object packet_view_item = new
+                    if (_stream_type == "tcp")
                     {
-                        PacketNumber = current_packet.ToString(),
-                        Source = ip_packet.SourceAddress.ToString() + ":" + tcp_packet.SourcePort.ToString(),
-                        Destination = ip_packet.DestinationAddress.ToString() + ":" + tcp_packet.DestinationPort.ToString(),
-                        PayloadLength = tcp_packet.PayloadData.Length.ToString(),
-                    };
+                        PacketDotNet.TcpPacket tcp_packet = eth_packet.Extract<PacketDotNet.TcpPacket>();
+                        _packet_bytes.Add(tcp_packet.PayloadData.ToList());
 
-                    if (packet_stream_view.Items.Contains(packet_view_item) == false)
-                        packet_stream_view.Items.Add(packet_view_item);
+                        object packet_view_item = new
+                        {
+                            PacketNumber = current_packet.ToString(),
+                            Source = ip_packet.SourceAddress.ToString() + ":" + tcp_packet.SourcePort.ToString(),
+                            Destination = ip_packet.DestinationAddress.ToString() + ":" + tcp_packet.DestinationPort.ToString(),
+                            PayloadLength = tcp_packet.PayloadData.Length.ToString(),
+                        };
+
+                        if (packet_stream_view.Items.Contains(packet_view_item) == false)
+                            packet_stream_view.Items.Add(packet_view_item);
+                    }
+                    else
+                    {
+                        PacketDotNet.UdpPacket udp_packet = eth_packet.Extract<PacketDotNet.UdpPacket>();
+                        _packet_bytes.Add(udp_packet.PayloadData.ToList());
+
+                        object packet_view_item = new
+                        {
+                            PacketNumber = current_packet.ToString(),
+                            Source = ip_packet.SourceAddress.ToString() + ":" + udp_packet.SourcePort.ToString(),
+                            Destination = ip_packet.DestinationAddress.ToString() + ":" + udp_packet.DestinationPort.ToString(),
+                            PayloadLength = udp_packet.PayloadData.Length.ToString(),
+                        };
+
+                        if (packet_stream_view.Items.Contains(packet_view_item) == false)
+                            packet_stream_view.Items.Add(packet_view_item);
+                    }
 
                     current_packet++;
                 }
@@ -234,9 +254,11 @@ namespace chocoGUI
             ui_handle_intercept();
         }
 
-        public StreamWindow(string backend_file, string stream_id)
+        public StreamWindow(string backend_file, string stream_id, string stream_type)
         {
             InitializeComponent();
+
+            _stream_type = stream_type;
 
             _stream_id = stream_id;
 
