@@ -83,8 +83,14 @@ fn main()
 			.insert(arg_name.clone(), arg_val.clone());
 	}
 
-	if proxy_ip_set == false || proxy_port_set == false || pcap_dir_set == false || udp_proxy_ip_set == false || udp_proxy_port_set == false || manager_ip_set == false || manager_port_set == false
-	{ 
+	if proxy_ip_set == false
+		|| proxy_port_set == false
+		|| pcap_dir_set == false
+		|| udp_proxy_ip_set == false
+		|| udp_proxy_port_set == false
+		|| manager_ip_set == false
+		|| manager_port_set == false
+	{
 		error_and_exit(file!(), line!(), "Options missing: specify --proxy-ip <ip>, --proxy-port <port>, --udp-proxy-ip <ip>, --udp-proxy-port <port>, --manager-ip <ip>, --manager-port <port> and --pcap-dir <path>");
 	}
 
@@ -96,19 +102,18 @@ fn main()
 	});
 
 	let udp_socks_global_state = global_state.clone();
-	
+
 	let udp_socks_thread = thread::spawn(move || {
-		
 		let udp_socks_listener = match TcpListener::bind(
 			udp_socks_global_state.argv_options["--udp-proxy-ip"].clone()
-			+ &":".to_string()
-			+ &udp_socks_global_state.argv_options["--udp-proxy-port"].clone(),
+				+ &":".to_string()
+				+ &udp_socks_global_state.argv_options["--udp-proxy-port"].clone(),
 		)
 		{
 			Ok(v) => v,
 			Err(_) => panic!("Failed to open TCP listener for UDP client socks."),
 		};
-		
+
 		for stream in udp_socks_listener.incoming()
 		{
 			let thread_global_state = udp_socks_global_state.clone();
@@ -116,9 +121,8 @@ fn main()
 				handle_udp_client(stream.expect("Connection failed"), thread_global_state);
 			});
 		}
-		
 	});
-	
+
 	/* ================== TCP listener ================== */
 
 	let tcp_listener = match TcpListener::bind(

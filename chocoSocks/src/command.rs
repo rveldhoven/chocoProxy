@@ -77,7 +77,7 @@ fn handle_command_client(mut command_stream: TcpStream, mut global_state: global
 					.write(&(streams_string.len() as u32).to_ne_bytes())
 					.unwrap();
 				command_stream.write(&streams_string.as_bytes()).unwrap();
-			},
+			}
 			"active_udp_streams" =>
 			{
 				let mut streams_data = active_udp_streams(command_global_state);
@@ -95,27 +95,27 @@ fn handle_command_client(mut command_stream: TcpStream, mut global_state: global
 					.write(&(scripts_string.len() as u32).to_ne_bytes())
 					.unwrap();
 				command_stream.write(&scripts_string.as_bytes()).unwrap();
-			},
+			}
 			"delete_script" =>
 			{
 				delete_script(command_global_state, command_state.parameters);
-			},
+			}
 			"insert_script" =>
 			{
 				insert_script(command_global_state, command_state.parameters);
-			},
+			}
 			"repeat_packet" =>
 			{
 				repeat_packet(command_global_state, command_state.parameters);
-			},
+			}
 			"toggle_intercept" =>
 			{
 				toggle_intercept(command_global_state, command_state.parameters);
-			},
+			}
 			"global_intercept" =>
 			{
 				global_intercept(command_global_state, command_state.parameters);
-			},
+			}
 			_ => println!("Unknown command."),
 		}
 	}
@@ -380,7 +380,8 @@ fn global_intercept(mut global_state: globalState, mut parameters: Vec<Vec<u8>>)
 {
 	if let Ok(mut unlocked_toggle) = global_state.global_intercept.lock()
 	{
-		let toggle_flag: String = String::from_utf8(parameters[0].clone()).expect("Invalid UTF8 in global toggle flag.");
+		let toggle_flag: String =
+			String::from_utf8(parameters[0].clone()).expect("Invalid UTF8 in global toggle flag.");
 		let mut unlocked_toggle = match toggle_flag.as_ref()
 		{
 			"true" => true,

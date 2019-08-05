@@ -54,7 +54,7 @@ impl UDPRequest
 {
 	fn create_from_bytes(bytes: &[u8]) -> UDPRequest
 	{
-		let mut ip: [u8;4] = [0;4];
+		let mut ip: [u8; 4] = [0; 4];
 		let mut port: [u8; 2] = [0; 2];
 
 		ip.copy_from_slice(&bytes[1..5]);
@@ -69,45 +69,57 @@ impl UDPRequest
 	}
 }
 
-fn receive_packet_from_client(client_stream : &mut TcpStream) -> std::result::Result<Vec<u8>, ()>
+fn receive_packet_from_client(client_stream: &mut TcpStream) -> std::result::Result<Vec<u8>, ()>
 {
-	let mut bytes_receive_size : [u8; 4] = [0; 4];
+	let mut bytes_receive_size: [u8; 4] = [0; 4];
 	if let Err(_) = client_stream.read(&mut bytes_receive_size)
 	{
-		error_and_continue(file!(), line!(), "Failed to receive intercepted packet length.");
+		error_and_continue(
+			file!(),
+			line!(),
+			"Failed to receive intercepted packet length.",
+		);
 		return Err(());
 	}
-	
-	let mut intercept_amount = unsafe { 
-		std::mem::transmute::<[u8; 4], u32>(
-		[bytes_receive_size[0], bytes_receive_size[1], bytes_receive_size[2], bytes_receive_size[3]]
-		)}.to_le();
-		
+
+	let mut intercept_amount = unsafe {
+		std::mem::transmute::<[u8; 4], u32>([
+			bytes_receive_size[0],
+			bytes_receive_size[1],
+			bytes_receive_size[2],
+			bytes_receive_size[3],
+		])
+	}
+	.to_le();
+
 	//println!("UDP socks: receiving: {} bytes", intercept_amount);
-		
-	let mut result_bytes : Vec<u8> = vec![0; intercept_amount as usize];
-	
+
+	let mut result_bytes: Vec<u8> = vec![0; intercept_amount as usize];
+
 	if let Err(_) = client_stream.read(&mut result_bytes)
 	{
 		error_and_continue(file!(), line!(), "Failed to receive intercepted packet.");
 		return Err(());
 	}
-	
+
 	Ok(result_bytes)
 }
 
-fn send_packet_to_client(client_stream : &mut TcpStream, packet_bytes : &Vec<u8>) -> std::result::Result<(), ()>
+fn send_packet_to_client(
+	client_stream: &mut TcpStream,
+	packet_bytes: &Vec<u8>,
+) -> std::result::Result<(), ()>
 {
 	if let Err(_) = client_stream.write(&(packet_bytes.len() as u32).to_ne_bytes())
 	{
 		return Err(());
 	}
-	
+
 	if let Err(_) = client_stream.write(&packet_bytes[..])
 	{
 		return Err(());
 	}
-	
+
 	Ok(())
 }
 
@@ -154,30 +166,34 @@ fn handle_udp_packet(
 pub fn handle_udp_client(mut client_stream: TcpStream, mut global_state: globalState)
 {
 	let mut packet_bytes = Vec::new();
-	let mut request_struct = UDPRequest
-	{ 
+	let mut request_struct = UDPRequest {
 		request_mode: 0,
 		ip: 0,
 		port: 0,
 	};
-	
+
 	let mut activity: bool = false;
 	let mut intercept: bool = false;
 	let mut repeater: bool = false;
 	let mut global_intercept: bool = false;
-	let mut echo_tcpstream : Option<TcpStream> = None;
+	let mut echo_tcpstream: Option<TcpStream> = None;
 
 	packet_bytes = match receive_packet_from_client(&mut client_stream)
 	{
 		Ok(v) => v,
 		_ => return,
 	};
-	
+
 	request_struct = UDPRequest::create_from_bytes(&packet_bytes[0..7]);
 
-	let dest_ip = Ipv4Addr::new(packet_bytes[1], packet_bytes[2], packet_bytes[3], packet_bytes[4]);
+	let dest_ip = Ipv4Addr::new(
+		packet_bytes[1],
+		packet_bytes[2],
+		packet_bytes[3],
+		packet_bytes[4],
+	);
 	packet_bytes = packet_bytes[7..].to_vec();
-	
+
 	let timestamp = SystemTime::now()
 		.duration_since(UNIX_EPOCH)
 		.unwrap()
@@ -224,7 +240,7 @@ pub fn handle_udp_client(mut client_stream: TcpStream, mut global_state: globalS
 		true,
 		state_id.clone(),
 	);
-	
+
 	if let Ok(mut unlocked_streams) = global_state.udp_streams.lock()
 	{
 		unlocked_streams.insert(state_id.clone(), state_data);
@@ -247,12 +263,12 @@ pub fn handle_udp_client(mut client_stream: TcpStream, mut global_state: globalS
 				packet_bytes,
 			);
 		}
-	
+
 		if let Err(_) = send_packet_to_client(&mut client_stream, &packet_bytes)
 		{
 			break;
 		}
-	
+
 		if request_struct.request_mode == REQUEST_MODE_WRITE
 		{
 			save_udp_to_pcap(&packet_bytes, &0, &request_struct.ip, &mut file);
@@ -261,18 +277,17 @@ pub fn handle_udp_client(mut client_stream: TcpStream, mut global_state: globalS
 		{
 			save_udp_to_pcap(&packet_bytes, &request_struct.ip, &0, &mut file);
 		}
-		
-		
+
 		packet_bytes = match receive_packet_from_client(&mut client_stream)
 		{
 			Ok(v) => v,
 			_ => break,
 		};
-		
+
 		request_struct = UDPRequest::create_from_bytes(&packet_bytes[0..7]);
 		packet_bytes = packet_bytes[7..].to_vec();
 	}
-	
+
 	if let Ok(mut unlocked_streams) = global_state.udp_streams.lock()
 	{
 		unlocked_streams.remove(&state_id);
@@ -282,22 +297,3 @@ pub fn handle_udp_client(mut client_stream: TcpStream, mut global_state: globalS
 		error_and_exit(file!(), line!(), "Failed to lock udpstreams");
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

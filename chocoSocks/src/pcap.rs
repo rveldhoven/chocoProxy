@@ -83,7 +83,7 @@ pub struct ipHeader
 
 impl ipHeader
 {
-	pub fn create_header(source_ip: u32, dest_ip: u32, proto : u8, packet_size: u16) -> ipHeader
+	pub fn create_header(source_ip: u32, dest_ip: u32, proto: u8, packet_size: u16) -> ipHeader
 	{
 		ipHeader {
 			ip_vhl: 0x45,
@@ -164,22 +164,17 @@ impl tcpHeader
 #[repr(C)]
 pub struct udpHeader
 {
-    pub source_port: u16,
-    pub destination_port: u16,
-    pub length: u16,
-    pub checksum: u16
+	pub source_port: u16,
+	pub destination_port: u16,
+	pub length: u16,
+	pub checksum: u16,
 }
 
 impl udpHeader
 {
-	pub fn create_header(
-		asource_port: u16,
-		adestination_port: u16,
-		alength: &u16,
-	) -> udpHeader
+	pub fn create_header(asource_port: u16, adestination_port: u16, alength: &u16) -> udpHeader
 	{
-		udpHeader
-		{
+		udpHeader {
 			source_port: asource_port,
 			destination_port: adestination_port,
 			length: (*alength).to_be(),
@@ -354,7 +349,6 @@ pub fn save_to_pcap(
 	}
 }
 
-
 fn emit_udp(packet_data: &Vec<u8>, src: &u32, dst: &u32, file: &mut File)
 {
 	let header_length = std::mem::size_of::<ipHeader>() + std::mem::size_of::<udpHeader>();
@@ -404,16 +398,10 @@ fn emit_udp(packet_data: &Vec<u8>, src: &u32, dst: &u32, file: &mut File)
 	}
 }
 
-pub fn save_udp_to_pcap(
-	packet_data: &Vec<u8>,
-	src: &u32,
-	dst: &u32,
-	file: &mut File,
-)
+pub fn save_udp_to_pcap(packet_data: &Vec<u8>, src: &u32, dst: &u32, file: &mut File)
 {
 	emit_udp(packet_data, src, dst, file);
 }
-
 
 pub unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8]
 {

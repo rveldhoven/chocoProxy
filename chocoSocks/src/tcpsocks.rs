@@ -1,4 +1,5 @@
 use std::{
+	cell::RefCell,
 	fs::{
 		File,
 		OpenOptions,
@@ -27,7 +28,6 @@ use std::{
 		SystemTime,
 		UNIX_EPOCH,
 	},
-	cell::RefCell,
 };
 
 use std::os::windows::fs::OpenOptionsExt;
@@ -75,15 +75,15 @@ impl s4Packet
 }
 
 fn process_command(
-	mut global_state: globalState, 
-	state_id: &String, 
-	repeater: &mut bool, 
-	intercept: &mut bool, 
-	client_to_server_bytes: &mut Vec<u8>
+	mut global_state: globalState,
+	state_id: &String,
+	repeater: &mut bool,
+	intercept: &mut bool,
+	client_to_server_bytes: &mut Vec<u8>,
 ) -> Option<String>
 {
-	let mut current_command : Option<commandState> = None;
-	
+	let mut current_command: Option<commandState> = None;
+
 	if let Ok(mut unlocked_command) = global_state.commands.lock()
 	{
 		current_command = match unlocked_command.get_mut(state_id)
@@ -92,85 +92,83 @@ fn process_command(
 			None => None,
 		};
 	}
-	
-	let real_command = match current_command 
+
+	let real_command = match current_command
 	{
 		Some(v) => v,
 		_ => return None,
 	};
-	
+
 	match real_command.command.as_ref()
 	{
-		"repeat_packet" => 
+		"repeat_packet" =>
 		{
 			*client_to_server_bytes = real_command.parameters[0].clone();
 			*repeater = true;
 			None
-		},		
-		"toggle_intercept" => 
+		}
+		"toggle_intercept" =>
 		{
-			let toggle_flag: String =
-				String::from_utf8(real_command.parameters[0].clone()).expect("Invalid UTF8 in toggle flag.");
+			let toggle_flag: String = String::from_utf8(real_command.parameters[0].clone())
+				.expect("Invalid UTF8 in toggle flag.");
 			match toggle_flag.as_ref()
 			{
-				"true" => 
+				"true" =>
 				{
 					*intercept = true;
 					let connection_string: String =
-						String::from_utf8(real_command.parameters[1].clone()).expect("Invalid UTF8 in connection string.");
+						String::from_utf8(real_command.parameters[1].clone())
+							.expect("Invalid UTF8 in connection string.");
 					Some(connection_string)
-				},
+				}
 				"false" => None,
-				_ => 
+				_ =>
 				{
-					error_and_continue(file!(),line!(),"Invalid toggle value: must be true or false");
+					error_and_continue(
+						file!(),
+						line!(),
+						"Invalid toggle value: must be true or false",
+					);
 					None
-				},
+				}
 			}
 		}
-		_ => 
+		_ =>
 		{
-			error_and_continue(file!(),line!(),"Invalid command: invalid number of parameters");
+			error_and_continue(
+				file!(),
+				line!(),
+				"Invalid command: invalid number of parameters",
+			);
 			None
-		},
+		}
 	}
 }
 
 thread_local! {
-	pub static RECEIVER_SYN_T: RefCell<u32> = RefCell::new(0); 
+	pub static RECEIVER_SYN_T: RefCell<u32> = RefCell::new(0);
 	pub static SENDER_SYN_T: RefCell<u32> = RefCell::new(0);
 }
 
 fn send_to_stream(
-	mut global_state: globalState, 
-	sending_stream: &mut TcpStream, 
-	receiving_stream: &mut TcpStream, 
-	packet_bytes : Vec<u8>,
+	mut global_state: globalState,
+	sending_stream: &mut TcpStream,
+	receiving_stream: &mut TcpStream,
+	packet_bytes: Vec<u8>,
 	state_id: &String,
-	file: &mut File
-	) -> bool
+	file: &mut File,
+) -> bool
 {
-	let receiver_syn = RECEIVER_SYN_T.with(|syn| {
-        syn.borrow().clone()
-    });
-	let mut sender_syn = SENDER_SYN_T.with(|syn| {
-        syn.borrow().clone()
-    });
+	let receiver_syn = RECEIVER_SYN_T.with(|syn| syn.borrow().clone());
+	let mut sender_syn = SENDER_SYN_T.with(|syn| syn.borrow().clone());
 
-	save_to_pcap(
-		&packet_bytes,
-		&0,
-		&1,
-		&sender_syn,
-		&receiver_syn,
-		file
-	);
-	
+	save_to_pcap(&packet_bytes, &0, &1, &sender_syn, &receiver_syn, file);
+
 	sender_syn = sender_syn.wrapping_add(packet_bytes.len() as u32);
-	
+
 	SENDER_SYN_T.with(|syn| {
-        *syn.borrow_mut() = sender_syn;
-    });
+		*syn.borrow_mut() = sender_syn;
+	});
 
 	if let Err(_) = receiving_stream.write(&packet_bytes)
 	{
@@ -189,22 +187,31 @@ fn send_to_stream(
 	return true;
 }
 
-fn echo_send_and_receive_packet(echo_tcpstream: &mut TcpStream, packet_bytes : Vec<u8>) -> Vec<u8>
+fn echo_send_and_receive_packet(echo_tcpstream: &mut TcpStream, packet_bytes: Vec<u8>) -> Vec<u8>
 {
-	let mut received_bytes : [u8; 4] = [0; 4];
+	let mut received_bytes: [u8; 4] = [0; 4];
 	echo_tcpstream
 		.write(&(packet_bytes.len() as u32).to_ne_bytes())
 		.unwrap();
 	echo_tcpstream.write(&packet_bytes).unwrap();
 	if let Err(_) = echo_tcpstream.read(&mut received_bytes)
 	{
-		error_and_exit(file!(), line!(), "Failed to receive intercepted packet length.");
+		error_and_exit(
+			file!(),
+			line!(),
+			"Failed to receive intercepted packet length.",
+		);
 	}
-	let mut intercept_amount = unsafe { 
-		std::mem::transmute::<[u8; 4], u32>(
-		[received_bytes[0], received_bytes[1], received_bytes[2], received_bytes[3]]
-		)}.to_le();
-	let mut modified_bytes : Vec<u8> = vec![0;intercept_amount as usize];
+	let mut intercept_amount = unsafe {
+		std::mem::transmute::<[u8; 4], u32>([
+			received_bytes[0],
+			received_bytes[1],
+			received_bytes[2],
+			received_bytes[3],
+		])
+	}
+	.to_le();
+	let mut modified_bytes: Vec<u8> = vec![0; intercept_amount as usize];
 	if let Err(_) = echo_tcpstream.read(&mut modified_bytes)
 	{
 		error_and_exit(file!(), line!(), "Failed to receive intercepted packet.");
@@ -321,6 +328,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		"Connecting to {} on port {}...",
 		littlePacket.ip_address, littlePacket.socks_port
 	);
+
 	let mut server_stream = match TcpStream::connect(&connection)
 	{
 		Ok(v) =>
@@ -402,17 +410,17 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 	let mut intercept: bool = false;
 	let mut repeater: bool = false;
 	let mut global_intercept: bool = false;
-	let mut echo_tcpstream : Option<TcpStream> = None;
-	
+	let mut echo_tcpstream: Option<TcpStream> = None;
+
 	loop
 	{
 		activity = false;
 		intercept = false;
 		repeater = false;
 		global_intercept = false;
-		
+
 		/* ================== Check for intercept ================== */
-		
+
 		if let Ok(mut unlocked_global) = global_state.global_intercept.lock()
 		{
 			global_intercept = *unlocked_global;
@@ -421,9 +429,15 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		{
 			error_and_exit(file!(), line!(), "Failed to lock global intercept.");
 		}
-		
-		let mut client_to_server_bytes : Vec<u8> = Vec::new();
-		if let Some(connection_string) = process_command(global_state.clone(), &state_id, &mut repeater, &mut intercept, &mut client_to_server_bytes)
+
+		let mut client_to_server_bytes: Vec<u8> = Vec::new();
+		if let Some(connection_string) = process_command(
+			global_state.clone(),
+			&state_id,
+			&mut repeater,
+			&mut intercept,
+			&mut client_to_server_bytes,
+		)
 		{
 			echo_tcpstream = match TcpStream::connect(connection_string)
 			{
@@ -431,24 +445,25 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 				Err(_) => None,
 			};
 		}
-		
-		if repeater == true 
+
+		if repeater == true
 		{
 			let status = match send_to_stream(
 				global_state.clone(),
-				&mut client_stream, 
-				&mut server_stream, 
+				&mut client_stream,
+				&mut server_stream,
 				client_to_server_bytes.clone(),
 				&state_id,
-				&mut file)
+				&mut file,
+			)
 			{
 				true => activity = true,
 				false => break,
 			};
 		}
-		
+
 		/* ================== Receive from server ================== */
-		
+
 		let bytes_received = match server_stream.read(&mut packet_data)
 		{
 			Ok(v) => v,
@@ -467,20 +482,21 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 				dest_port.clone(),
 				server_to_client_bytes,
 			);
-			
+
 			let status = match send_to_stream(
 				global_state.clone(),
-				&mut server_stream, 
-				&mut client_stream, 
+				&mut server_stream,
+				&mut client_stream,
 				server_to_client_bytes.clone(),
 				&state_id,
-				&mut file)
+				&mut file,
+			)
 			{
 				true => activity = true,
 				false => break,
 			};
 		}
-		
+
 		/* ================== Client send to server ================== */
 
 		let bytes_received = match client_stream.read(&mut packet_data)
@@ -498,18 +514,18 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 					let mut temp_tcpstream = match echo_tcpstream
 					{
 						Some(v) => v,
-						None => 
+						None =>
 						{
 							error_and_exit(file!(), line!(), "No echo stream found.");
 							panic!("No echo stream found.");
-						},
+						}
 					};
-					
-				client_to_server_bytes = echo_send_and_receive_packet(&mut temp_tcpstream, client_to_server_bytes);
-				echo_tcpstream = Some(temp_tcpstream);
-				
+
+					client_to_server_bytes =
+						echo_send_and_receive_packet(&mut temp_tcpstream, client_to_server_bytes);
+					echo_tcpstream = Some(temp_tcpstream);
 				}
-				
+
 				if let Ok(mut unlocked_global) = global_state.global_intercept.lock()
 				{
 					match *unlocked_global
@@ -518,7 +534,7 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 						{
 							thread::sleep(time::Duration::from_millis(10));
 							continue;
-						},
+						}
 						false => break,
 					}
 				}
@@ -527,50 +543,52 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 					error_and_exit(file!(), line!(), "Failed to lock global intercept.");
 				}
 			}
-			
+
 			let mut client_to_server_bytes = packet_data[0..bytes_received].to_vec();
-			
+
 			// more work here needs to be done
-			
+
 			if intercept == true
 			{
 				let mut temp_tcpstream = match echo_tcpstream
 				{
 					Some(v) => v,
-					None => 
+					None =>
 					{
 						error_and_exit(file!(), line!(), "No echo stream found.");
 						panic!("No echo stream found.");
-					},
+					}
 				};
-				client_to_server_bytes = echo_send_and_receive_packet(&mut temp_tcpstream, client_to_server_bytes);
+				client_to_server_bytes =
+					echo_send_and_receive_packet(&mut temp_tcpstream, client_to_server_bytes);
 				echo_tcpstream = Some(temp_tcpstream);
 			}
 			else
 			{
 				client_to_server_bytes = handle_packet_client_server(
-				global_state.clone(),
-				src_ip.clone(),
-				src_port.clone(),
-				dest_ip.clone(),
-				dest_port.clone(),
-				client_to_server_bytes,
+					global_state.clone(),
+					src_ip.clone(),
+					src_port.clone(),
+					dest_ip.clone(),
+					dest_port.clone(),
+					client_to_server_bytes,
 				);
 			}
-			
+
 			let status = match send_to_stream(
 				global_state.clone(),
-				&mut client_stream, 
-				&mut server_stream, 
+				&mut client_stream,
+				&mut server_stream,
 				client_to_server_bytes.clone(),
 				&state_id,
-				&mut file)
+				&mut file,
+			)
 			{
 				true => activity = true,
 				false => break,
 			};
 		}
-		
+
 		if activity == false
 		{
 			thread::sleep(time::Duration::from_millis(10));
