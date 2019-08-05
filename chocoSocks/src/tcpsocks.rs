@@ -65,7 +65,6 @@ impl s4Packet
 		port.copy_from_slice(&bytes[2..4]);
 		ip_address.copy_from_slice(&bytes[4..8]);
 
-		// parse bytes
 		s4Packet {
 			socks_version: bytes[0],
 			command_type: bytes[1],
@@ -88,10 +87,10 @@ fn process_command(
 	if let Ok(mut unlocked_command) = global_state.commands.lock()
 	{
 		current_command = match unlocked_command.get_mut(state_id)
-			{
-				Some(v) => v.pop_front(),
-				None => None,
-			};
+		{
+			Some(v) => v.pop_front(),
+			None => None,
+		};
 	}
 	
 	let real_command = match current_command 
@@ -154,7 +153,7 @@ fn send_to_stream(
 	let receiver_syn = RECEIVER_SYN_T.with(|syn| {
         syn.borrow().clone()
     });
-	let sender_syn = SENDER_SYN_T.with(|syn| {
+	let mut sender_syn = SENDER_SYN_T.with(|syn| {
         syn.borrow().clone()
     });
 
@@ -164,11 +163,13 @@ fn send_to_stream(
 		&1,
 		&sender_syn,
 		&receiver_syn,
-		&mut file
+		file
 	);
 	
+	sender_syn = sender_syn.wrapping_add(packet_bytes.len() as u32);
+	
 	SENDER_SYN_T.with(|syn| {
-        syn.borrow_mut() = syn.borrow_mut().wrapping_add(packet_bytes.len() as u32);
+        *syn.borrow_mut() = sender_syn;
     });
 
 	if let Err(_) = receiving_stream.write(&packet_bytes)
@@ -178,14 +179,14 @@ fn send_to_stream(
 		if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock()
 		{
 			unlocked_streams.remove(state_id);
+			return false;
 		}
 		else
 		{
 			error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
 		}
-		false
 	}
-	true
+	return true;
 }
 
 fn echo_send_and_receive_packet(echo_tcpstream: &mut TcpStream, packet_bytes : Vec<u8>) -> Vec<u8>
@@ -203,7 +204,7 @@ fn echo_send_and_receive_packet(echo_tcpstream: &mut TcpStream, packet_bytes : V
 		std::mem::transmute::<[u8; 4], u32>(
 		[received_bytes[0], received_bytes[1], received_bytes[2], received_bytes[3]]
 		)}.to_le();
-	let mut modified_bytes : Vec<u8> = Vec::with_capacity(intercept_amount as usize);
+	let mut modified_bytes : Vec<u8> = vec![0;intercept_amount as usize];
 	if let Err(_) = echo_tcpstream.read(&mut modified_bytes)
 	{
 		error_and_exit(file!(), line!(), "Failed to receive intercepted packet.");
@@ -433,33 +434,18 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 		
 		if repeater == true 
 		{
-/*			save_to_pcap(
-				&client_to_server_bytes,
-				&0,
-				&1,
-				&client_server_syn,
-				&server_client_syn,
-				&mut file,
-			);
-			
-			client_server_syn = client_server_syn.wrapping_add(client_to_server_bytes.len() as u32);
-
-			if let Err(_) = server_stream.write(&client_to_server_bytes)
+			let status = match send_to_stream(
+				global_state.clone(),
+				&mut client_stream, 
+				&mut server_stream, 
+				client_to_server_bytes.clone(),
+				&state_id,
+				&mut file)
 			{
-				client_stream.shutdown(Shutdown::Both);
-
-				if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock()
-				{
-					unlocked_streams.remove(&state_id);
-				}
-				else
-				{
-					error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
-				}
-				break;
-			}*/
-			activity = true;
-		} 
+				true => activity = true,
+				false => break,
+			};
+		}
 		
 		/* ================== Receive from server ================== */
 		
@@ -481,34 +467,18 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 				dest_port.clone(),
 				server_to_client_bytes,
 			);
-
-/*			save_to_pcap(
-				&server_to_client_bytes,
-				&1,
-				&0,
-				&server_client_syn,
-				&client_server_syn,
-				&mut file,
-			);
-
-			server_client_syn = server_client_syn.wrapping_add(server_to_client_bytes.len() as u32);
-
-			if let Err(_) = client_stream.write(&server_to_client_bytes)
+			
+			let status = match send_to_stream(
+				global_state.clone(),
+				&mut server_stream, 
+				&mut client_stream, 
+				server_to_client_bytes.clone(),
+				&state_id,
+				&mut file)
 			{
-				server_stream.shutdown(Shutdown::Both);
-
-				if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock()
-				{
-					unlocked_streams.remove(&state_id);
-				}
-				else
-				{
-					error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
-				}
-
-				break; 
-			}*/
-			activity = true;
+				true => activity = true,
+				false => break,
+			};
 		}
 		
 		/* ================== Client send to server ================== */
@@ -560,6 +530,8 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 			
 			let mut client_to_server_bytes = packet_data[0..bytes_received].to_vec();
 			
+			// more work here needs to be done
+			
 			if intercept == true
 			{
 				let mut temp_tcpstream = match echo_tcpstream
@@ -585,34 +557,18 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 				client_to_server_bytes,
 				);
 			}
-
-/*			save_to_pcap(
-				&client_to_server_bytes,
-				&0,
-				&1,
-				&client_server_syn,
-				&server_client_syn,
-				&mut file,
-			);
-
-			client_server_syn = client_server_syn.wrapping_add(client_to_server_bytes.len() as u32);
-
-			if let Err(_) = server_stream.write(&client_to_server_bytes)
+			
+			let status = match send_to_stream(
+				global_state.clone(),
+				&mut client_stream, 
+				&mut server_stream, 
+				client_to_server_bytes.clone(),
+				&state_id,
+				&mut file)
 			{
-				client_stream.shutdown(Shutdown::Both);
-
-				if let Ok(mut unlocked_streams) = global_state.tcp_streams.lock()
-				{
-					unlocked_streams.remove(&state_id);
-				}
-				else
-				{
-					error_and_exit(file!(), line!(), "Failed to lock tcpstreams");
-				}
-
-				break;
-			} */
-			activity = true;
+				true => activity = true,
+				false => break,
+			};
 		}
 		
 		if activity == false
