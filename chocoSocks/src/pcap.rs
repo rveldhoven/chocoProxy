@@ -83,7 +83,7 @@ pub struct ipHeader
 
 impl ipHeader
 {
-	pub fn create_header(source_ip: u32, dest_ip: u32, packet_size: u16) -> ipHeader
+	pub fn create_header(source_ip: u32, dest_ip: u32, proto : u8, packet_size: u16) -> ipHeader
 	{
 		ipHeader {
 			ip_vhl: 0x45,
@@ -92,7 +92,7 @@ impl ipHeader
 			ip_id: 0x0000,
 			ip_flagplusoff: 0x0000,
 			ip_ttl: 0xfe,
-			ip_proto: 0x06,
+			ip_proto: proto,
 			ip_hsum: 0x0000,
 			ip_src: source_ip,
 			ip_dst: dest_ip,
@@ -226,7 +226,7 @@ fn emit_syn(packet_data: &Vec<u8>, src: &u32, dst: &u32, a_syn: &u32, b_syn: &u3
 	}
 
 	let eth = ethernetHeader::create_header();
-	let ip = ipHeader::create_header(*src, *dst, packet_length.try_into().unwrap());
+	let ip = ipHeader::create_header(*src, *dst, 0x06, packet_length.try_into().unwrap());
 	let tcp = tcpHeader::create_header_syn(sport, dport, a_syn, b_syn, 64000);
 
 	let ether_data = unsafe { any_as_u8_slice(&eth) };
@@ -277,6 +277,7 @@ fn emit_ack(packet_data: &Vec<u8>, src: &u32, dst: &u32, a_syn: &u32, b_syn: &u3
 	let ip = ipHeader::create_header(
 		*src,
 		*dst,
+		0x06,
 		(std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>())
 			.try_into()
 			.unwrap(),
@@ -356,6 +357,9 @@ pub fn save_to_pcap(
 
 fn emit_udp(packet_data: &Vec<u8>, src: &u32, dst: &u32, file: &mut File)
 {
+	let header_length = std::mem::size_of::<ipHeader>() + std::mem::size_of::<udpHeader>();
+	let packet_length = header_length + packet_data.len();
+
 	let mut dport = 1;
 	let mut sport = 0;
 
@@ -366,13 +370,7 @@ fn emit_udp(packet_data: &Vec<u8>, src: &u32, dst: &u32, file: &mut File)
 	}
 
 	let eth = ethernetHeader::create_header();
-	let ip = ipHeader::create_header(
-		*src,
-		*dst,
-		(std::mem::size_of::<ipHeader>() + std::mem::size_of::<tcpHeader>())
-			.try_into()
-			.unwrap(),
-	);
+	let ip = ipHeader::create_header(*src, *dst, 17, packet_length.try_into().unwrap());
 	let udp = udpHeader::create_header(sport, dport, &(packet_data.len() as u16));
 
 	let ether_data = unsafe { any_as_u8_slice(&eth) };
@@ -384,6 +382,7 @@ fn emit_udp(packet_data: &Vec<u8>, src: &u32, dst: &u32, file: &mut File)
 	data.extend_from_slice(ether_data);
 	data.extend_from_slice(ip_data);
 	data.extend_from_slice(upd_data);
+	data.extend_from_slice(&packet_data[..]);
 
 	let real_packet = pcapPacket::create_from_bytes(&data[..]);
 
