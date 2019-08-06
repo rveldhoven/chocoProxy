@@ -204,7 +204,7 @@ fn handle_udp_packet(
 
 fn handle_relay_tick_intercept(global_state: &mut globalState, client_stream : &mut TcpStream, echo_stream : &mut TcpStream, state_id: &String, pcap_file : &mut File) -> std::result::Result<(),()>
 {
-		let mut packet_data: [u8; 16192] = [0; 16192];
+	let mut packet_data: [u8; 16192] = [0; 16192];
 
 	let mut bytes_received = match client_stream.read(&mut packet_data)
 	{
