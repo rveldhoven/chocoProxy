@@ -14,11 +14,11 @@
         <TextBox Name="udp_proxy_ip_textbox" Height="20" Margin="171,38,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="205"/>
         <TextBox Name="udp_proxy_port_textbox" Height="20" Margin="381,38,7,0" RenderTransformOrigin="0.788,-0.345" VerticalAlignment="Top"/>
         <TextBox Name="metadata_textbox" Margin="171,86,7,0" RenderTransformOrigin="0.788,-0.345" Height="20" VerticalAlignment="Top"/>
+        <TextBox x:Name="management_port_textbox" Height="20" Margin="381,63,7,0" RenderTransformOrigin="0.788,-0.345" VerticalAlignment="Top"/>
+        <TextBox x:Name="management_ip_textbox" Height="20" Margin="171,63,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="205"/>
         <Button Content="Ok" HorizontalAlignment="Left" Margin="11,119,0,0" Width="60" Click="Button_Click" Height="20" VerticalAlignment="Top"/>
         <Button Content="Cancel" HorizontalAlignment="Left" Margin="76,119,0,0" Width="60" Click="Button_Click_1" Height="20" VerticalAlignment="Top"/>
         <Label Margin="10,87,0,0" Content="Target process:" Height="27" VerticalAlignment="Top" HorizontalAlignment="Left" Width="156"/>
         <Label Margin="10,63,0,0" Height="24" VerticalAlignment="Top" HorizontalAlignment="Left" Width="158" Content="Management IP:PORT"/>
-        <TextBox x:Name="management_ip_textbox" Height="20" Margin="171,63,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="205"/>
-        <TextBox x:Name="management_port_textbox" Height="20" Margin="381,63,7,0" RenderTransformOrigin="0.788,-0.345" VerticalAlignment="Top"/>
     </Grid>
 </Window>
