@@ -6,19 +6,38 @@
         xmlns:local="clr-namespace:chocoGUI"
         mc:Ignorable="d"
         Title="InjectWindow" Height="313.348" Width="347.812">
-    <Grid Margin="0,0,-6.667,1">
-        <ListView x:Name="process_view" Margin="10,26,10.333,21">
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn/>
-                </GridView>
-            </ListView.View>
-        </ListView>
+    <Grid Margin="0,0,0,0">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="50*"></ColumnDefinition>
+                <ColumnDefinition Width="50*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="91*"></RowDefinition>
+                <RowDefinition Height="9*"></RowDefinition>
+            </Grid.RowDefinitions>
+            <ListView Grid.Row="0" Grid.Column="0" x:Name="process_view" Margin="10,26,2,0">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn/>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            <ListView Grid.Row="0" Grid.Column="1" x:Name="proxy_view" Margin="2,26,10,0">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn/>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            <Button Grid.Row="1" Content="Ok" Click="inject_process_button" HorizontalAlignment="Left" Width="60" Margin="10,2,0,2"/>
+            <Button Grid.Row="1" Content="Cancel" HorizontalAlignment="Left" Click="Cancel_Inject" Width="60" Margin="75,2,0,2"/>
+        </Grid>
         <Label Content="Select a process to inject:" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top" Width="159" Height="26"/>
-        <Button Content="Ok" Margin="110,0,0,0" Click="inject_process_button" Height="21" VerticalAlignment="Bottom" RenderTransformOrigin="-0.106,1.157" HorizontalAlignment="Left" Width="47"/>
+        
         <RadioButton Content="TCP" Name="TcpRadioButton" HorizontalAlignment="Left" Margin="200,6,0,0" VerticalAlignment="Top" Checked="Check_TCP"/>
         <RadioButton Content="UDP" Name="UdpRadioButton" HorizontalAlignment="Left" Margin="254,6,0,0" VerticalAlignment="Top" Checked="Check_UDP"/>
-        <Button Content="Cancel" HorizontalAlignment="Left" Margin="171,0,0,-1" Width="53" Click="Cancel_Inject" Height="22" VerticalAlignment="Bottom"/>
+        
 
     </Grid>
 </Window>

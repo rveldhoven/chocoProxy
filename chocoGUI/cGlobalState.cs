@@ -14,8 +14,10 @@ namespace chocoGUI
     {
         public string proxy_name { get; set; }
         public string proxy_process_metadata { get; set; }
-        public string proxy_ip { get; set; }
-        public string proxy_port{ get; set; }
+        public string proxy_socks_ip { get; set; }
+        public string proxy_socks_port{ get; set; }
+        public string proxy_udp_ip { get; set; }
+        public string proxy_udp_port { get; set; }
         public string management_ip { get; set; }
         public string management_port { get; set; }
         public string pcap_dir { get; set; }
@@ -462,8 +464,10 @@ namespace chocoGUI
             {
                 proxy_name = ip + ":" + port,
                 proxy_process_metadata = metadata,
-                proxy_ip = ip,
-                proxy_port = port,
+                proxy_socks_ip = ip,
+                proxy_socks_port = port,
+                proxy_udp_ip = u_ip,
+                proxy_udp_port = u_port,
                 management_ip = m_ip,
                 management_port = m_port,
                 pcap_dir = pcap_dir,
@@ -490,7 +494,7 @@ namespace chocoGUI
 
                 for (; i < _proxy_process_list.Count; i++)
                 {
-                    if (_proxy_process_list[i].proxy_ip == proxy_ip && _proxy_process_list[i].proxy_port == proxy_port)
+                    if (_proxy_process_list[i].proxy_socks_ip == proxy_ip && _proxy_process_list[i].proxy_socks_port == proxy_port)
                     {
                         proxy_found = true;
                         break;

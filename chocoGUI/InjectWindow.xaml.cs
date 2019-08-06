@@ -34,6 +34,16 @@ namespace chocoGUI
 
             process_view.View = process_gridview;
 
+            var proxy_gridview = new GridView();
+
+            proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Proxy metadata", DisplayMemberBinding = new Binding("ProxyMetadata") });
+            proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Proxy SOCKS address", DisplayMemberBinding = new Binding("ProxySOCKSAddress") });
+            proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Proxy UDP address", DisplayMemberBinding = new Binding("ProxyUDPAddress") });
+            proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Management address", DisplayMemberBinding = new Binding("MangementAddress") });
+            proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Pcap directory", DisplayMemberBinding = new Binding("PcapDirectory") });
+
+            proxy_view.View = proxy_gridview;
+
             ui_update_tick();
         }
         private void ui_update_tick()
@@ -55,6 +65,27 @@ namespace chocoGUI
                 if (process_view.Items.Contains(process_item) == false)
                     process_view.Items.Add(process_item);
             }
+
+            var running_proxies = cGlobalState.ui_proxy_process_get();
+
+            List<object> current_proxy_objects = new List<object>();
+
+            foreach (var proxy_process in running_proxies)
+            {
+                object stream_item = new
+                {
+                    ProxyMetadata = proxy_process.proxy_process_metadata,
+                    ProxySOCKSAddress = proxy_process.proxy_socks_ip + ":" + proxy_process.proxy_socks_port,
+                    ProxyUDPAddress = proxy_process.proxy_udp_ip + ":" + proxy_process.proxy_udp_port,
+                    MangementAddress = proxy_process.management_ip + ":" + proxy_process.management_port,
+                    PcapDirectory = proxy_process.pcap_dir,
+                };
+
+                current_proxy_objects.Add(stream_item);
+
+                if (proxy_view.Items.Contains(stream_item) == false)
+                    proxy_view.Items.Add(stream_item);
+            }
         }
         private void inject_process_button(object sender, RoutedEventArgs e)
         {
@@ -64,16 +95,38 @@ namespace chocoGUI
                 return;
             }
 
+            if (proxy_view.SelectedIndex == -1)
+            {
+                MessageBox.Show("Select a proxy from the list.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
             var selected_process = process_view.SelectedItem;
 
             int process_ID = (int)object_helper.get_object_value(selected_process, "ProcessID");
             string process_arch = (string)object_helper.get_object_value(selected_process, "ProcessArch");
 
+            var selected_proxy = proxy_view.SelectedItem;
+
+            string ip = "";
+            string port = "";
+
+            if (TcpRadioButton.IsChecked.Value == true)
+            {
+                ip = ((string)object_helper.get_object_value(selected_proxy, "ProxySOCKSAddress")).Split(':')[0];
+                port = ((string)object_helper.get_object_value(selected_proxy, "ProxySOCKSAddress")).Split(':')[1];
+            }
+            else
+            {
+                ip = ((string)object_helper.get_object_value(selected_proxy, "ProxyUDPAddress")).Split(':')[0];
+                port = ((string)object_helper.get_object_value(selected_proxy, "ProxyUDPAddress")).Split(':')[1];
+            }
+            //// <dll> <pid> <ip> <port> <fun>
             Process new_injector = new Process();
             new_injector.StartInfo.UseShellExecute = true;
             new_injector.StartInfo.Verb = "runas";
 
-            new_injector.StartInfo.Arguments = process_ID.ToString() + " " + System.IO.Path.Combine(Environment.CurrentDirectory, (TcpRadioButton.IsChecked.Value ? "chocoSOCKSDLL" : "chocoUDPDLL") + (process_arch == "x86" ? "Win32" : "x64"));
+            new_injector.StartInfo.Arguments = '"' + System.IO.Path.Combine(Environment.CurrentDirectory, (TcpRadioButton.IsChecked.Value ? "chocoSOCKSDLL" : "chocoUDPDLL") + (process_arch == "x86" ? "Win32" : "x64")) + ".dll\" " + process_ID.ToString() + " " + ip + " " + port + " sendto";
             new_injector.StartInfo.FileName = "chocoInjector.exe";
 
             new_injector.Start();
