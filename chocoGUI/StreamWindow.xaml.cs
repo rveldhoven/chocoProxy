@@ -290,6 +290,15 @@ namespace chocoGUI
             ui_dispatcher_timer.Tick += new EventHandler(ui_update_tick);
             ui_dispatcher_timer.Interval = new TimeSpan(0, 0, 0, 0, 500);
             ui_dispatcher_timer.Start();
+
+            if (cGlobalState.global_intercept_flag == true)
+            {
+                _is_intercepting = true;
+
+                intercept_status.Content = "Intercepting: " + (_is_intercepting == true ? "yes" : "no");
+
+                _intercepting_client = ui_tcp_wait_for_connection();
+            }
         }
 
         private void SendToRepeater_Click(object sender, RoutedEventArgs e)
