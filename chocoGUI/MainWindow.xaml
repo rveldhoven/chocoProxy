@@ -8,8 +8,8 @@
         Title="chocoGUI" Height="450" Width="800">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="96*"></RowDefinition>
-            <RowDefinition Height="4*"></RowDefinition>
+            <RowDefinition Height="94*"></RowDefinition>
+            <RowDefinition Height="6*"></RowDefinition>
         </Grid.RowDefinitions>
         <TabControl Grid.Row="0">
             <TabItem Header="Main menu">
@@ -78,6 +78,6 @@
                 </ListView>
             </TabItem>
         </TabControl>
-        <Label Content="Global intercept state: false" Grid.Row="1"></Label>
+        <Label Name="intercept_state_label" Content="Global intercept state: false" Grid.Row="1"></Label>
     </Grid>
 </Window>

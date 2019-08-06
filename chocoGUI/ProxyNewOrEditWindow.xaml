@@ -7,18 +7,18 @@
         mc:Ignorable="d"
         Title="Add new proxy" Height="176.623" Width="444.883">
     <Grid Margin="0,0,0,0">
-        <Label Margin="10,13,0,0" Height="25" VerticalAlignment="Top" HorizontalAlignment="Left" Width="158">TCP proxy IP:PORT</Label>
-        <TextBox Name="proxy_ip_textbox" Height="20" Margin="171,13,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="205"/>
-        <TextBox Name="proxy_port_textbox" Height="20" Margin="381,13,7,0" VerticalAlignment="Top"/>
-        <Label Margin="10,38,0,0" Height="24" VerticalAlignment="Top" HorizontalAlignment="Left" Width="158">UDP proxy IP:PORT</Label>
-        <TextBox Name="udp_proxy_ip_textbox" Height="20" Margin="171,38,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="205"/>
-        <TextBox Name="udp_proxy_port_textbox" Height="20" Margin="381,38,7,0" RenderTransformOrigin="0.788,-0.345" VerticalAlignment="Top"/>
+        <Label Margin="10,13,0,0" Height="25" VerticalAlignment="Top" HorizontalAlignment="Left" Width="158">TCP proxy (IP:PORT)</Label>
+        <TextBox Name="proxy_ip_textbox" Text="127.0.0.1" Height="20" Margin="171,13,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="205"/>
+        <TextBox Name="proxy_port_textbox" Text="1080" Height="20" Margin="381,13,7,0" VerticalAlignment="Top"/>
+        <Label Margin="10,38,0,0" Height="24" VerticalAlignment="Top" HorizontalAlignment="Left" Width="158">UDP proxy (IP:PORT)</Label>
+        <TextBox Name="udp_proxy_ip_textbox" Text="127.0.0.1" Height="20" Margin="171,38,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="205"/>
+        <TextBox Name="udp_proxy_port_textbox" Text="1081" Height="20" Margin="381,38,7,0" RenderTransformOrigin="0.788,-0.345" VerticalAlignment="Top"/>
+        <TextBox x:Name="management_ip_textbox" Text="127.0.0.1" Height="20" Margin="171,63,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="205"/>
+        <TextBox x:Name="management_port_textbox" Text="1082" Height="20" Margin="381,63,7,0" RenderTransformOrigin="0.788,-0.345" VerticalAlignment="Top"/>
         <TextBox Name="metadata_textbox" Margin="171,86,7,0" RenderTransformOrigin="0.788,-0.345" Height="20" VerticalAlignment="Top"/>
-        <TextBox x:Name="management_port_textbox" Height="20" Margin="381,63,7,0" RenderTransformOrigin="0.788,-0.345" VerticalAlignment="Top"/>
-        <TextBox x:Name="management_ip_textbox" Height="20" Margin="171,63,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="205"/>
         <Button Content="Ok" HorizontalAlignment="Left" Margin="11,119,0,0" Width="60" Click="Button_Click" Height="20" VerticalAlignment="Top"/>
         <Button Content="Cancel" HorizontalAlignment="Left" Margin="76,119,0,0" Width="60" Click="Button_Click_1" Height="20" VerticalAlignment="Top"/>
-        <Label Margin="10,87,0,0" Content="Target process:" Height="27" VerticalAlignment="Top" HorizontalAlignment="Left" Width="156"/>
-        <Label Margin="10,63,0,0" Height="24" VerticalAlignment="Top" HorizontalAlignment="Left" Width="158" Content="Management IP:PORT"/>
+        <Label Margin="10,87,0,0" Content="Proxy ID:" Height="27" VerticalAlignment="Top" HorizontalAlignment="Left" Width="156"/>
+        <Label Margin="10,63,0,0" Height="24" VerticalAlignment="Top" HorizontalAlignment="Left" Width="158" Content="Management (IP:PORT)"/>
     </Grid>
 </Window>
