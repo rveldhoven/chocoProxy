@@ -199,7 +199,8 @@ namespace chocoGUI
 
         private void Inject_button_Click(object sender, RoutedEventArgs e)
         {
-
+            var inject_window = new InjectWindow();
+            inject_window.ShowDialog();
         }
 
         private void Create_proxy_button_Click(object sender, RoutedEventArgs e)
