@@ -7,7 +7,11 @@
         mc:Ignorable="d"
         Title="chocoGUI" Height="450" Width="800">
     <Grid>
-        <TabControl>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="96*"></RowDefinition>
+            <RowDefinition Height="4*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <TabControl Grid.Row="0">
             <TabItem Header="Main menu">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -34,6 +38,7 @@
                             </Style>
                         </ListView.ItemContainerStyle>
                     </ListView>
+                    <Button x:Name="global_intercept_toggle" Content="Toggle global intercept" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,59,0,0" Width="230" Click="Toggle_global_intercept_Click"/>
                 </Grid>
             </TabItem>
             <TabItem Header="TCP streams">
@@ -73,5 +78,6 @@
                 </ListView>
             </TabItem>
         </TabControl>
+        <Label Content="Global intercept state: false" Grid.Row="1"></Label>
     </Grid>
 </Window>

@@ -203,6 +203,15 @@ namespace chocoGUI
             inject_window.ShowDialog();
         }
 
+        private void Toggle_global_intercept_Click(object sender, RoutedEventArgs e)
+        {
+            cGlobalState.global_intercept_flag = !cGlobalState.global_intercept_flag;
+
+            intercept_state_label.Content = "Global intercept state: " + (cGlobalState.global_intercept_flag == true ? "true" : "false");
+
+            cGlobalState.ui_toggle_global_intercept();
+        }
+
         private void Create_proxy_button_Click(object sender, RoutedEventArgs e)
         {
             var proxy_edit_window = new ProxyNewOrEditWindow();

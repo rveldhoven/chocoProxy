@@ -78,6 +78,7 @@ namespace chocoGUI
 
         private static Thread _background_thread;
         private static bool _background_is_running = false;
+        public static bool global_intercept_flag = false;
 
         #region background helpers
 
@@ -612,6 +613,31 @@ namespace chocoGUI
             }
 
             throw new Exception("Error: interception cannot be toggled because the connection is belongs too has closed");
+        }
+        
+        public static void ui_toggle_global_intercept()
+        {
+            string toggle = cGlobalState.global_intercept_flag == true ? "true" : "false";
+
+            byte[] bytes_toggle = Encoding.UTF8.GetBytes(toggle);
+            List<List<byte>> command_parameters = new List<List<byte>>();
+            command_parameters.Add(bytes_toggle.ToList());
+
+            cCommand toggle_global_intercept_command = new cCommand
+            {
+                command = "global_intercept",
+                parameters = command_parameters,
+            };
+
+            string string_toggle_intercept_command = JsonConvert.SerializeObject(toggle_global_intercept_command);
+
+            lock (_proxy_process_mutex)
+            {
+                foreach (cProxyProcess process in _proxy_process_list)
+                {
+                    process.proxy_management_stream.Client.Send(Encoding.UTF8.GetBytes(string_toggle_intercept_command));
+                }
+            }
         }
 
         public static void ui_script_delete_script(string proxy_id, string stream_id, string script_name)
