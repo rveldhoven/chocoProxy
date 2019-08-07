@@ -142,37 +142,4 @@ fn main()
 			handle_tcp_client(stream.expect("Connection failed"), thread_global_state);
 		});
 	}
-
-	/* ================== UDP listener ================== */
-	/*
-		let udp_listener = match UdpSocket::bind("127.0.0.1:81")
-		{
-			Ok(v) => v,
-			Err(_) => panic!("Failed to open UDP listener."),
-		};
-	*/
-
-	/* ================== Command listener ================== */
-
-	/*
-		let mut command : [u8; 1024] = [0; 1024];
-		let command_listener = match UdpSocket::bind("127.0.0.1:1001")
-		{
-			Ok(v) => v,
-			Err(_) => panic!("Failed to open command UDP listener."),
-		};
-
-		loop
-		{
-			let (number_of_bytes, src_addr) = command_listener.recv_from(&mut command).expect("Didn't receive command data.");
-
-			match &command[0..2]
-			{
-				&[0x30,0x0a] => println!("first command"),
-				&[0x31,0x0a] => println!("second command"),
-				&[0x32,0x0a] => println!("third command"),
-				_ => println!("Unknown command"),
-			}
-		}
-	*/
 }
