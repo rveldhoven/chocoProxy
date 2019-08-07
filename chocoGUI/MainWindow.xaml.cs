@@ -248,7 +248,7 @@ namespace chocoGUI
             var display_object = proxy_view.SelectedItem;
 
             // The proxy's name is also it's adress since it's unique
-            string proxy_address = (string)object_helper.get_object_value(display_object, "ProxyAddress");
+            string proxy_address = (string)object_helper.get_object_value(display_object, "ProxySOCKSAddress");
 
             var script_manager_window = new ScriptManagerWindow(proxy_address, "Global");
             script_manager_window.Show();
