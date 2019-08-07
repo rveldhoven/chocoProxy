@@ -349,7 +349,7 @@ pub fn save_to_pcap(
 	}
 }
 
-fn emit_udp(packet_data: &Vec<u8>, src: &u32, dst: &u32, file: &mut File)
+fn emit_udp(packet_data: &Vec<u8>, src: &u32, dst: &u32, src_port : &u16, dst_port : &u16, file: &mut File)
 {
 	let header_length = std::mem::size_of::<ipHeader>() + std::mem::size_of::<udpHeader>();
 	let packet_length = header_length + packet_data.len();
@@ -357,15 +357,15 @@ fn emit_udp(packet_data: &Vec<u8>, src: &u32, dst: &u32, file: &mut File)
 	let mut dport = 1;
 	let mut sport = 0;
 
-	if *src == 0
-	{
-		dport = 0;
-		sport = 1;
-	}
+	//if *src == 0
+	//{
+	//	dport = 0;
+	//	sport = 1;
+	//}
 
 	let eth = ethernetHeader::create_header();
 	let ip = ipHeader::create_header(*src, *dst, 17, packet_length.try_into().unwrap());
-	let udp = udpHeader::create_header(sport, dport, &(packet_data.len() as u16));
+	let udp = udpHeader::create_header(*src_port, *dst_port, &(packet_data.len() as u16));
 
 	let ether_data = unsafe { any_as_u8_slice(&eth) };
 	let ip_data = unsafe { any_as_u8_slice(&ip) };
@@ -398,9 +398,9 @@ fn emit_udp(packet_data: &Vec<u8>, src: &u32, dst: &u32, file: &mut File)
 	}
 }
 
-pub fn save_udp_to_pcap(packet_data: &Vec<u8>, src: &u32, dst: &u32, file: &mut File)
+pub fn save_udp_to_pcap(packet_data: &Vec<u8>, src: &u32, dst: &u32, src_port : &u16, dst_port : &u16, file: &mut File)
 {
-	emit_udp(packet_data, src, dst, file);
+	emit_udp(packet_data, src, dst, src_port, dst_port, file);
 }
 
 pub unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8]

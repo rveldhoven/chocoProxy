@@ -71,10 +71,10 @@ impl UDPRequest
 		// parse bytes
 		UDPRequest {
 			request_mode: bytes[0],
-			src_ip: unsafe { transmute::<[u8; 4], u32>(a_src_ip) }.to_be(),
-			src_port: unsafe { transmute::<[u8; 2], u16>(a_src_port) }.to_be(),
-			dst_ip: unsafe { transmute::<[u8; 4], u32>(a_dst_ip) }.to_be(),
-			dst_port: unsafe { transmute::<[u8; 2], u16>(a_dst_port) }.to_be(),
+			src_ip: unsafe { transmute::<[u8; 4], u32>(a_src_ip) }.to_le(),
+			src_port: unsafe { transmute::<[u8; 2], u16>(a_src_port) }.to_le(),
+			dst_ip: unsafe { transmute::<[u8; 4], u32>(a_dst_ip) }.to_le(),
+			dst_port: unsafe { transmute::<[u8; 2], u16>(a_dst_port) }.to_le(),
 		}
 	}
 }
@@ -266,11 +266,11 @@ fn handle_relay_tick_intercept(global_state: &mut globalState, client_stream : &
 
 	if request_struct.request_mode == REQUEST_MODE_WRITE
 	{
-		save_udp_to_pcap(&packet_bytes, &request_struct.src_ip, &request_struct.dst_ip, pcap_file);
+		save_udp_to_pcap(&packet_bytes, &request_struct.src_ip, &request_struct.dst_ip, &request_struct.src_port, &request_struct.dst_port, pcap_file);
 	}
 	else
 	{
-		save_udp_to_pcap(&packet_bytes, &request_struct.src_ip, &request_struct.dst_ip, pcap_file);
+		save_udp_to_pcap(&packet_bytes, &request_struct.src_ip, &request_struct.dst_ip, &request_struct.src_port, &request_struct.dst_port, pcap_file);
 	}
 
 	if let Err(_) = send_packet_to_client(client_stream, &packet_bytes)
@@ -336,11 +336,11 @@ fn handle_relay_tick_nointercept(global_state: &mut globalState, client_stream :
 
 	if request_struct.request_mode == REQUEST_MODE_WRITE
 	{
-		save_udp_to_pcap(&packet_bytes, &request_struct.src_ip, &request_struct.dst_ip, pcap_file);
+		save_udp_to_pcap(&packet_bytes, &request_struct.src_ip, &request_struct.dst_ip, &request_struct.src_port, &request_struct.dst_port, pcap_file);
 	}
 	else
 	{
-		save_udp_to_pcap(&packet_bytes, &request_struct.src_ip, &request_struct.dst_ip, pcap_file);
+		save_udp_to_pcap(&packet_bytes, &request_struct.src_ip, &request_struct.dst_ip, &request_struct.src_port, &request_struct.dst_port, pcap_file);
 	}
 
 	if let Err(_) = send_packet_to_client(client_stream, &packet_bytes)
