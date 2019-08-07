@@ -253,5 +253,10 @@ namespace chocoGUI
             var script_manager_window = new ScriptManagerWindow(proxy_address, "Global");
             script_manager_window.Show();
         }
+
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            Environment.Exit(0);
+        }
     }
 }
