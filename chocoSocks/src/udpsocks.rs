@@ -446,6 +446,61 @@ pub fn handle_udp_client(mut client_stream: TcpStream, mut global_state: globalS
 			};
 		}
 
+				if let Some(real_command) = current_command
+		{
+			activity = true;
+
+			match real_command.command.as_ref()
+			{
+				"repeat_packet" =>
+				{
+							error_and_continue(
+								file!(),
+								line!(),
+								"Repeat command is not implemented yet",
+							);
+
+					continue;
+				},
+				"toggle_intercept" =>
+				{
+					let toggle_flag: String = String::from_utf8(real_command.parameters[0].clone()).expect("Invalid UTF8 in toggle flag.");
+
+					match toggle_flag.as_ref()
+					{
+						"true" =>
+						{
+							let connection_string: String = String::from_utf8(real_command.parameters[1].clone()).expect("Invalid UTF8 in connection string.");
+							intercept = true;
+
+							echo_tcpstream = match TcpStream::connect(&connection_string)
+							{
+								Ok(v) => Some(v),
+								_ => None,
+							};
+						}
+						"false" => intercept = false,
+						_ =>
+						{
+							error_and_continue(
+								file!(),
+								line!(),
+								"Invalid toggle value: must be true or false",
+							);
+						}
+					}
+				},
+				_ =>
+				{
+					error_and_continue(
+						file!(),
+						line!(),
+						"Invalid command: invalid number of parameters",
+					);
+				}
+			}
+		}
+
 		if (global_intercept == true)
 		{
 			// This means an error occured while establishing the error stream
