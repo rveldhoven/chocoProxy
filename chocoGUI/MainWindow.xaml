@@ -17,7 +17,6 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="250"/>
                         <ColumnDefinition Width="225*" />
-                        <ColumnDefinition Width="43*"/>
                     </Grid.ColumnDefinitions>
 
                     <Button Name="inject_button" Content="Inject proxy DLL" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,35,0,0" Width="230" Click="Inject_button_Click"></Button>
