@@ -45,5 +45,7 @@
         <Button Name="toggle_intercept_button" Grid.Row="1" Margin="10,0,0,3" VerticalAlignment="Bottom" HorizontalAlignment="Left" Click="toggle_intercept_button_Click">Toggle intercept</Button>
         <Button Name="send_packet_button" Grid.Row="1" Margin="105,0,0,3" VerticalAlignment="Bottom" HorizontalAlignment="Left" Click="send_packet_button_Click">Send packet</Button>
         <Label Name="intercept_status"  Content="Intercepting: no" Grid.Row="1" Margin="173,0,0,0" ></Label>
+        <Label Name="selected_packet_status_text"  Content="Displayed packet: " Grid.Row="1" Margin="273,0,0,0" ></Label>
+        <Label Name="selected_packet_status"  Content="server -> client intercept (READ + WRITE)" FontWeight="Bold" Grid.Row="1" Margin="383,0,0,0" ></Label>
     </Grid>
 </Window>

@@ -282,7 +282,10 @@ int WINAPI hooked_recvfrom(
 	std::vector<uint8_t> second_buffer = send_receive(home_socket, first_buffer);
 
 	if (second_buffer.size() > len)
+	{
+		MessageBoxA(NULL, "Error: Dangerous packet modification: returned packet is too big for client buffer", "Error", MB_OK | MB_ICONERROR);
 		return result;
+	}
 
 	memcpy(buf, second_buffer.data(), second_buffer.size());
 

@@ -392,7 +392,7 @@ fn global_intercept(mut global_state: globalState, mut parameters: Vec<Vec<u8>>)
 	{
 		let toggle_flag: String =
 			String::from_utf8(parameters[0].clone()).expect("Invalid UTF8 in global toggle flag.");
-		let mut unlocked_toggle = match toggle_flag.as_ref()
+		*unlocked_toggle = match toggle_flag.as_ref()
 		{
 			"true" => true,
 			"false" => false,

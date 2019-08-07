@@ -211,6 +211,12 @@ namespace chocoGUI
             if (_is_intercepting == false)
                 return;
 
+            if (selected_packet_status.Content.ToString() != "INTERCEPTED PACKET (READ+WRITE)")
+            {
+                MessageBox.Show("Warning: The selected paket is an old packet, it cannot be sent now", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             System.Windows.Forms.Integration.WindowsFormsHost host = (WindowsFormsHost)grid1.Children[_child_id];
 
             Be.Windows.Forms.HexBox my_hex_box = (Be.Windows.Forms.HexBox)host.Child;
@@ -221,8 +227,11 @@ namespace chocoGUI
                 send_bytes.Add(my_hex_box.ByteProvider.ReadByte(i));
 
             my_hex_box.ByteProvider = new Be.Windows.Forms.DynamicByteProvider(new List<byte>());
+            my_hex_box.ReadOnly = true;
 
             ui_send_intercepted_packet(send_bytes);
+
+            selected_packet_status.Content = "NO PACKET (READONLY)";
         }
 
         private void ui_handle_intercept()
@@ -234,17 +243,17 @@ namespace chocoGUI
 
             Be.Windows.Forms.HexBox my_hex_box = (Be.Windows.Forms.HexBox)host.Child;
 
-            if (my_hex_box.ByteProvider.Length != 0)
-                return;
-
             if (_intercepting_client.Client.Available < 4)
                 return;
+
+            selected_packet_status.Content = "INTERCEPTED PACKET (READ+WRITE)";
 
             List<byte> new_bytes = ui_receive_intercepted_packet();
 
             my_hex_box.ByteProvider = new Be.Windows.Forms.DynamicByteProvider(new_bytes);
             my_hex_box.StringViewVisible = true;
             my_hex_box.VScrollBarVisible = true;
+            my_hex_box.ReadOnly = false;
         }
 
         private void ui_update_tick(object sender, EventArgs e)
@@ -286,6 +295,9 @@ namespace chocoGUI
             _child_id = grid1.Children.Add(host);
 
             hex_box.ByteProvider = new Be.Windows.Forms.DynamicByteProvider(new List<byte>());
+            hex_box.ReadOnly = true;
+
+            selected_packet_status.Content = "NO PACKET (READONLY)";
 
             ui_dispatcher_timer.Tick += new EventHandler(ui_update_tick);
             ui_dispatcher_timer.Interval = new TimeSpan(0, 0, 0, 0, 500);
@@ -368,6 +380,12 @@ namespace chocoGUI
             if (packet_stream_view.SelectedIndex == -1)
                 return;
 
+            if (selected_packet_status.Content.ToString() == "INTERCEPTED PACKET (READ+WRITE)")
+            {
+                MessageBox.Show("Warning: first send the intercepted packet using the 'send packet' button", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             var packet_display_object = packet_stream_view.SelectedItem;
 
             if ((string)object_helper.get_object_value(packet_display_object, "PayloadLength") == "0")
@@ -384,6 +402,9 @@ namespace chocoGUI
             my_hex_box.ByteProvider = new Be.Windows.Forms.DynamicByteProvider(packet_bytes);
             my_hex_box.StringViewVisible = true;
             my_hex_box.VScrollBarVisible = true;
+            my_hex_box.ReadOnly = true;
+
+            selected_packet_status.Content = "OLD PACKET (READONLY)";
 
             //grid1.Children[0].
 
