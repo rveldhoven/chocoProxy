@@ -25,7 +25,7 @@
                     <ListView Grid.Column="2" x:Name="proxy_view" Height="365" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" Margin="0,14,0.333,13.667">
                         <ListView.Resources>
                             <ContextMenu x:Key="proxy_menu">
-                                <MenuItem Header="Terminate proxy" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                                <!-- <MenuItem Header="Terminate proxy" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" /> -->
                                 <MenuItem Header="Manage scripts" Click="Manage_scripts_mouse_up" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
                             </ContextMenu>
                         </ListView.Resources>
@@ -45,7 +45,7 @@
                         <ListView.Resources>
                             <ContextMenu x:Key="tcp_stream_menu">
                             <MenuItem Header="Open TCP stream" Click="OpenTCPStreamButton_Click"  Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
-                            <MenuItem Header="Close connection" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                            <!-- <MenuItem Header="Close connection" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" /> -->
                             </ContextMenu>
                         </ListView.Resources>
                         <ListView.ItemContainerStyle>
@@ -62,7 +62,7 @@
                     <ListView.Resources>
                         <ContextMenu x:Key="udp_stream_menu">
                             <MenuItem Header="Open UDP stream" Click="OpenUDPStreamButton_Click"  Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
-                            <MenuItem Header="Close connection" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
+                          <!--  <MenuItem Header="Close connection" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" /> -->
                         </ContextMenu>
                     </ListView.Resources>
                     <ListView.ItemContainerStyle>
