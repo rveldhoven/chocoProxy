@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Sockets;
@@ -345,22 +346,16 @@ namespace chocoGUI
 
         #region UI getters
 
-        public static bool IsWin64Emulator(this Process process)
+        public static bool Is64Bit(Process process)
         {
-            try
-            {
-                if ((Environment.OSVersion.Version.Major > 5)
-                    || ((Environment.OSVersion.Version.Major == 5) && (Environment.OSVersion.Version.Minor >= 1)))
-                {
-                    bool retVal;
-                    return NativeMethods.IsWow64Process(process.Handle, out retVal) && retVal;
-                }
-                return false; // not on 64-bit Windows Emulator
-            }
-            catch (Exception e)
-            {
+            if (!Environment.Is64BitOperatingSystem)
                 return false;
-            }
+            // if this method is not available in your version of .NET, use GetNativeSystemInfo via P/Invoke instead
+
+            bool isWow64;
+            if (!NativeMethods.IsWow64Process(process.Handle, out isWow64))
+                throw new Win32Exception();
+            return !isWow64;
         }
 
         internal static class NativeMethods

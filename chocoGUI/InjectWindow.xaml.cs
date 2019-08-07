@@ -53,17 +53,24 @@ namespace chocoGUI
 
             foreach (Process the_process in process_list)
             {
-                object process_item = new
+                try
                 {
-                    ProcessName = the_process.ProcessName,
-                    ProcessArch = cGlobalState.IsWin64Emulator(the_process) ? "x64" : "x86" ,
-                    ProcessID = the_process.Id
-                };
+                    object process_item = new
+                    {
+                        ProcessName = the_process.ProcessName,
+                        ProcessArch = cGlobalState.Is64Bit(the_process) ? "x64" : "x86",
+                        ProcessID = the_process.Id
+                    };
 
-                current_process_list.Add(process_item);
+                    current_process_list.Add(process_item);
 
-                if (process_view.Items.Contains(process_item) == false)
-                    process_view.Items.Add(process_item);
+                    if (process_view.Items.Contains(process_item) == false)
+                        process_view.Items.Add(process_item);
+                }
+                catch(Exception e)
+                {
+                    continue;
+                }
             }
 
             var running_proxies = cGlobalState.ui_proxy_process_get();
