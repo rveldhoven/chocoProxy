@@ -162,12 +162,15 @@ void set_hook(const std::string& module, const std::string& function, void* to_l
 
 void real_main()
 {
+	MessageBoxA(NULL, "Setting hooks", "Setting hooks", MB_OK);
+
 	try
 	{
 		std::shared_ptr<CopyPatterns> patterns = std::make_shared<CopyPatterns>();
 
 #ifdef _WIN64
 		patterns->insert(std::make_pair(std::vector<uint8_t>{0x40, 0x55}, 2));
+		patterns->insert(std::make_pair(std::vector<uint8_t>{0x40, 0x57}, 2));
 		patterns->insert(std::make_pair(std::vector<uint8_t>{0x40, 0x53}, 2));
 		patterns->insert(std::make_pair(std::vector<uint8_t>{0x48, 0x8b, 0xc4}, 3));
 		patterns->insert(std::make_pair(std::vector<uint8_t>{0x4c, 0x8b, 0xdc}, 3));

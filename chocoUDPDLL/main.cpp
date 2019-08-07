@@ -286,6 +286,7 @@ void real_main()
 
 #ifdef _WIN64
 		patterns->insert(std::make_pair(std::vector<uint8_t>{0x40, 0x55}, 2));
+		patterns->insert(std::make_pair(std::vector<uint8_t>{0x40, 0x57}, 2));
 		patterns->insert(std::make_pair(std::vector<uint8_t>{0x40, 0x53}, 2));
 		patterns->insert(std::make_pair(std::vector<uint8_t>{0x48, 0x8b, 0xc4}, 3));
 		patterns->insert(std::make_pair(std::vector<uint8_t>{0x4c, 0x8b, 0xdc}, 3));
