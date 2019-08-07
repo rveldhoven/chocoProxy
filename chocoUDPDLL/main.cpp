@@ -151,9 +151,11 @@ std::vector<uint8_t> send_receive(SOCKET home_socket, const std::vector<uint8_t>
 #pragma pack(push, 1)
 struct UDPRequest
 {
-	uint8_t		mode;
-	uint32_t	ip;
-	uint16_t	port;
+	uint8_t		mode;			// 0
+	uint32_t	src_ip;			// 1	
+	uint16_t	src_port;		// 5
+	uint32_t	dst_ip;			// 7
+	uint16_t	dst_port;		// 11
 };
 #pragma pack(pop)
 
@@ -190,8 +192,24 @@ int WINAPI hooked_sendto(
 
 	UDPRequest request = {};
 	request.mode = request_mode_write;
-	request.ip = ((SOCKADDR_IN*)to)->sin_addr.S_un.S_addr;
-	request.port = ((SOCKADDR_IN*)to)->sin_port;
+
+	sockaddr_in sin;
+	int addrlen = sizeof(sin);
+
+	if (getsockname(s, (struct sockaddr*) & sin, &addrlen) == 0 && sin.sin_family == AF_INET && addrlen == sizeof(sin))
+	{
+		request.src_ip = sin.sin_addr.S_un.S_addr;
+		request.src_port = sin.sin_port;
+	}
+	else
+	{
+		request.src_ip = -1;
+		request.src_port = -1;
+	}
+
+
+	request.dst_ip = ((SOCKADDR_IN*)to)->sin_addr.S_un.S_addr;
+	request.dst_port = ((SOCKADDR_IN*)to)->sin_port;
 	first_buffer.insert(first_buffer.begin(), (uint8_t*)& request, (uint8_t*)& request + sizeof(request));
 
 	std::vector<uint8_t> second_buffer = send_receive(home_socket, first_buffer);
@@ -238,10 +256,27 @@ int WINAPI hooked_recvfrom(
 
 	memcpy((void*)first_buffer.data(), buf, result);
 
+	sockaddr_in sin;
+	int addrlen = sizeof(sin);
+
 	UDPRequest request = {};
 	request.mode = request_mode_read;
-	request.ip = ((SOCKADDR_IN*)from)->sin_addr.S_un.S_addr;
-	request.port = ((SOCKADDR_IN*)from)->sin_port;
+
+	if (getsockname(s, (struct sockaddr*) & sin, &addrlen) == 0 && sin.sin_family == AF_INET && addrlen == sizeof(sin))
+	{
+		request.dst_ip = sin.sin_addr.S_un.S_addr;
+		request.dst_ip = sin.sin_port;
+	}
+	else
+	{
+		request.dst_ip = -1;
+		request.dst_ip = -1;
+	}
+
+
+	request.src_ip = ((SOCKADDR_IN*)from)->sin_addr.S_un.S_addr;
+	request.src_port = ((SOCKADDR_IN*)from)->sin_port;
+
 	first_buffer.insert(first_buffer.begin(), (uint8_t*)& request, (uint8_t*)& request + sizeof(request));
 
 	std::vector<uint8_t> second_buffer = send_receive(home_socket, first_buffer);

@@ -46,25 +46,35 @@ use crate::{
 struct UDPRequest
 {
 	request_mode: u8,
-	ip: u32,
-	port: u16,
+	src_ip: u32,
+	src_port: u16,
+	dst_ip : u32,
+	dst_port : u16,
 }
 
 impl UDPRequest
 {
 	fn create_from_bytes(bytes: &[u8]) -> UDPRequest
 	{
-		let mut ip: [u8; 4] = [0; 4];
-		let mut port: [u8; 2] = [0; 2];
+		let mut a_src_ip: [u8; 4] = [0; 4];
+		let mut a_src_port: [u8; 2] = [0; 2];
 
-		ip.copy_from_slice(&bytes[1..5]);
-		port.copy_from_slice(&bytes[5..7]);
+		let mut a_dst_ip: [u8; 4] = [0; 4];
+		let mut a_dst_port: [u8; 2] = [0; 2];
+
+		a_src_ip.copy_from_slice(&bytes[1..5]);
+		a_src_port.copy_from_slice(&bytes[5..7]);
+		
+		a_dst_ip.copy_from_slice(&bytes[7..11]);
+		a_dst_port.copy_from_slice(&bytes[11..13]);
 
 		// parse bytes
 		UDPRequest {
 			request_mode: bytes[0],
-			ip: unsafe { transmute::<[u8; 4], u32>(ip) }.to_be(),
-			port: unsafe { transmute::<[u8; 2], u16>(port) }.to_be(),
+			src_ip: unsafe { transmute::<[u8; 4], u32>(a_src_ip) }.to_be(),
+			src_port: unsafe { transmute::<[u8; 2], u16>(a_src_port) }.to_be(),
+			dst_ip: unsafe { transmute::<[u8; 4], u32>(a_dst_ip) }.to_be(),
+			dst_port: unsafe { transmute::<[u8; 2], u16>(a_dst_port) }.to_be(),
 		}
 	}
 }
@@ -206,20 +216,23 @@ fn handle_relay_tick_intercept(global_state: &mut globalState, client_stream : &
 {
 	let mut packet_data: [u8; 16192] = [0; 16192];
 
-	let mut bytes_received = match client_stream.read(&mut packet_data)
+	debug_print(file!(), line!(), "Intercept: reading client stream");
+
+	let mut packet_bytes = match receive_packet_from_client(client_stream)
 	{
 		Ok(v) => v,
-		_ => 0,
+		_ => Vec::new(),
 	};
 
-	if (bytes_received == 0)
+	if packet_bytes.len() < 13
 	{
+		error_and_continue(file!(), line!(), "Invalid request received from DLL");
 		return Ok(());
 	}
 
-	let mut packet_bytes : Vec<u8> = packet_data[0..bytes_received].to_vec();
+	debug_print(file!(), line!(), "Intercept: isolating header");
 
-	let mut request_struct = UDPRequest::create_from_bytes(&packet_bytes[0..7]);
+	let mut request_struct = UDPRequest::create_from_bytes(&packet_bytes[0..13]);
 
 	let dest_ip = Ipv4Addr::new(
 		packet_bytes[1],
@@ -228,23 +241,36 @@ fn handle_relay_tick_intercept(global_state: &mut globalState, client_stream : &
 		packet_bytes[4],
 	);
 
-	packet_bytes = packet_bytes[7..].to_vec();
+	let src_ip = Ipv4Addr::new(
+		packet_bytes[7],
+		packet_bytes[8],
+		packet_bytes[9],
+		packet_bytes[10],
+	);
+
+	packet_bytes = packet_bytes[13..].to_vec();
+
+	debug_print(file!(), line!(), "Intercept: parsed header");
 
 	let str_dest_ip = dest_ip.to_string();
-	let str_dest_port = request_struct.port.to_string();
+	let str_dest_port = request_struct.dst_port.to_string();
 
-	let src_ip = client_stream.local_addr().unwrap().ip().to_string();
-	let src_port = client_stream.local_addr().unwrap().port().to_string();
+	let src_ip = src_ip.to_string();
+	let src_port = request_struct.dst_port.to_string();
+
+	debug_print(file!(), line!(), "Intercept: Echoing packet");
 
 	packet_bytes = echo_send_and_receive_packet(echo_stream, packet_bytes);
 
+	debug_print(file!(), line!(), "Intercept: Echoed packet");
+
 	if request_struct.request_mode == REQUEST_MODE_WRITE
 	{
-		save_udp_to_pcap(&packet_bytes, &0xffffffff, &request_struct.ip, pcap_file);
+		save_udp_to_pcap(&packet_bytes, &request_struct.src_ip, &request_struct.dst_ip, pcap_file);
 	}
 	else
 	{
-		save_udp_to_pcap(&packet_bytes, &request_struct.ip, &0xffffffff, pcap_file);
+		save_udp_to_pcap(&packet_bytes, &request_struct.src_ip, &request_struct.dst_ip, pcap_file);
 	}
 
 	if let Err(_) = send_packet_to_client(client_stream, &packet_bytes)
@@ -259,20 +285,23 @@ fn handle_relay_tick_nointercept(global_state: &mut globalState, client_stream :
 {	
 	let mut packet_data: [u8; 16192] = [0; 16192];
 
-	let mut bytes_received = match client_stream.read(&mut packet_data)
+	debug_print(file!(), line!(), "Reading client dll packet");
+
+	let mut packet_bytes = match receive_packet_from_client(client_stream)
 	{
 		Ok(v) => v,
-		_ => 0,
+		_ => Vec::new(),
 	};
 
-	if (bytes_received == 0)
+	if packet_bytes.len() < 13
 	{
+		error_and_continue(file!(), line!(), "Invalid request received from DLL");
 		return Ok(());
 	}
 
-	let mut packet_bytes : Vec<u8> = packet_data[0..bytes_received].to_vec();
+	println!("Received: {} bytes", packet_bytes.len());
 
-	let mut request_struct = UDPRequest::create_from_bytes(&packet_bytes[0..7]);
+	let mut request_struct = UDPRequest::create_from_bytes(&packet_bytes[0..13]);
 
 	let dest_ip = Ipv4Addr::new(
 		packet_bytes[1],
@@ -281,13 +310,20 @@ fn handle_relay_tick_nointercept(global_state: &mut globalState, client_stream :
 		packet_bytes[4],
 	);
 
-	packet_bytes = packet_bytes[7..].to_vec();
+	let src_ip = Ipv4Addr::new(
+		packet_bytes[7],
+		packet_bytes[8],
+		packet_bytes[9],
+		packet_bytes[10],
+	);
+
+	packet_bytes = packet_bytes[13..].to_vec();
 
 	let str_dest_ip = dest_ip.to_string();
-	let str_dest_port = request_struct.port.to_string();
+	let str_dest_port = request_struct.dst_port.to_string();
 
-	let src_ip = client_stream.local_addr().unwrap().ip().to_string();
-	let src_port = client_stream.local_addr().unwrap().port().to_string();
+	let src_ip = src_ip.to_string();
+	let src_port = request_struct.dst_port.to_string();
 
 	packet_bytes = handle_udp_packet(
 		global_state.clone(),
@@ -300,11 +336,11 @@ fn handle_relay_tick_nointercept(global_state: &mut globalState, client_stream :
 
 	if request_struct.request_mode == REQUEST_MODE_WRITE
 	{
-		save_udp_to_pcap(&packet_bytes, &0xffffffff, &request_struct.ip, pcap_file);
+		save_udp_to_pcap(&packet_bytes, &request_struct.src_ip, &request_struct.dst_ip, pcap_file);
 	}
 	else
 	{
-		save_udp_to_pcap(&packet_bytes, &request_struct.ip, &0xffffffff, pcap_file);
+		save_udp_to_pcap(&packet_bytes, &request_struct.src_ip, &request_struct.dst_ip, pcap_file);
 	}
 
 	if let Err(_) = send_packet_to_client(client_stream, &packet_bytes)
@@ -320,8 +356,10 @@ pub fn handle_udp_client(mut client_stream: TcpStream, mut global_state: globalS
 	let mut packet_bytes : Vec<u8> = Vec::new();
 	let mut request_struct = UDPRequest {
 		request_mode: 0,
-		ip: 0,
-		port: 0,
+		src_ip: 0,
+		src_port: 0,
+		dst_ip: 0,
+		dst_port: 0,
 	};
 
 	let mut activity: bool = false;
