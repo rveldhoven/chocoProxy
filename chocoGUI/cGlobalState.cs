@@ -267,6 +267,7 @@ namespace chocoGUI
         {
             int tcp_stream_update_counter = 0;
             int udp_stream_update_counter = 3;
+            int global_intercept_update_counter = 4;
             int scripts_update_counter = 5;
             int proxy_process_update_counter = 0;
 
@@ -285,6 +286,13 @@ namespace chocoGUI
                     udp_stream_update_counter = 0;
 
                     background_update_udp_streams();
+                }
+
+                if (global_intercept_update_counter++ > 10)
+                {
+                    global_intercept_update_counter = 0;
+
+                    ui_toggle_global_intercept();
                 }
 
                 if (scripts_update_counter++ > 10)
