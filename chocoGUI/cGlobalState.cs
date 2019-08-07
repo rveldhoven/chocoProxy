@@ -537,6 +537,20 @@ namespace chocoGUI
                 }
             }
 
+            List<cUDPStream> udp_streams = ui_udp_streams_get();
+
+            if (proxy_management_parent == "")
+            {
+                foreach (var udp_stream in udp_streams)
+                {
+                    if (udp_stream.stream_start == stream_id)
+                    {
+                        proxy_management_parent = udp_stream.source_process_name;
+                        break;
+                    }
+                }
+            }
+
             if (proxy_management_parent == "")
                 throw new Exception("Error: packet can't be repeated because the connection is belongs to has closed");
 
@@ -585,6 +599,20 @@ namespace chocoGUI
                 {
                     proxy_management_parent = tcp_stream.source_process_name;
                     break;
+                }
+            }
+            
+            List<cUDPStream> udp_streams = ui_udp_streams_get();
+
+            if (proxy_management_parent == "")
+            {
+                foreach (var udp_stream in udp_streams)
+                {
+                    if (udp_stream.stream_start == stream_id)
+                    {
+                        proxy_management_parent = udp_stream.source_process_name;
+                        break;
+                    }
                 }
             }
 

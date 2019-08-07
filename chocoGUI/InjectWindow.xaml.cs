@@ -127,7 +127,7 @@ namespace chocoGUI
             new_injector.StartInfo.Verb = "runas";
 
             new_injector.StartInfo.Arguments = '"' + System.IO.Path.Combine(Environment.CurrentDirectory, (TcpRadioButton.IsChecked.Value ? "chocoSOCKSDLL" : "chocoUDPDLL") + (process_arch == "x86" ? "Win32" : "x64")) + ".dll\" " + process_ID.ToString() + " " + ip + " " + port + " sendto";
-            new_injector.StartInfo.FileName = "chocoInjector.exe";
+            new_injector.StartInfo.FileName = "chocoInjector" + (process_arch == "x86" ? "Win32" : "x64") + ".exe";
 
             new_injector.Start();
         }
