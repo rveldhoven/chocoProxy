@@ -67,7 +67,7 @@ namespace chocoGUI
             proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Proxy SOCKS address", DisplayMemberBinding = new Binding("ProxySOCKSAddress") });
             proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Proxy UDP address", DisplayMemberBinding = new Binding("ProxyUDPAddress") });
             proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Management address", DisplayMemberBinding = new Binding("MangementAddress") });
-            proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Pcap directory", DisplayMemberBinding = new Binding("PcapDirectory") });
+            //proxy_gridview.Columns.Add(new GridViewColumn() { Header = "Pcap directory", DisplayMemberBinding = new Binding("PcapDirectory") });
 
             proxy_view.View = proxy_gridview;
 
@@ -133,7 +133,7 @@ namespace chocoGUI
                     ProxySOCKSAddress = proxy_process.proxy_socks_ip + ":" + proxy_process.proxy_socks_port,
                     ProxyUDPAddress = proxy_process.proxy_udp_ip + ":" + proxy_process.proxy_udp_port,
                     MangementAddress = proxy_process.management_ip + ":" + proxy_process.management_port,
-                    PcapDirectory = proxy_process.pcap_dir,
+                   // PcapDirectory = proxy_process.pcap_dir,
                 };
 
                 current_proxy_objects.Add(stream_item);
