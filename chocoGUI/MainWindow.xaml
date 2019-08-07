@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:chocoGUI"
         mc:Ignorable="d"
-        Title="chocoGUI" Height="450" Width="1032.667" Closed="Window_Closed" ResizeMode="NoResize">
+        Title="chocoGUI" Height="450" Width="846.667" Closed="Window_Closed" ResizeMode="NoResize">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="94*"></RowDefinition>
