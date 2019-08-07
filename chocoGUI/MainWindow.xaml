@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:chocoGUI"
         mc:Ignorable="d"
-        Title="chocoGUI" Height="450" Width="800" Closed="Window_Closed">
+        Title="chocoGUI" Height="450" Width="800" Closed="Window_Closed" ResizeMode="NoResize">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="94*"></RowDefinition>
@@ -16,13 +16,14 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="250"/>
-                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="225*" />
+                        <ColumnDefinition Width="43*"/>
                     </Grid.ColumnDefinitions>
 
                     <Button Name="inject_button" Content="Inject proxy DLL" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,35,0,0" Width="230" Click="Inject_button_Click"></Button>
                     <Button Name="create_proxy_button" Content="Start new proxy" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0" Width="230" Click="Create_proxy_button_Click"></Button>
-                    
-                    <ListView Grid.Column="2" x:Name="proxy_view" Height="365" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" Margin="0,14,0.333,13.667">
+
+                    <ListView Grid.Column="1" x:Name="proxy_view" Height="365" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" Margin="0,14,0,-13" Grid.ColumnSpan="2">
                         <ListView.Resources>
                             <ContextMenu x:Key="proxy_menu">
                                 <!-- <MenuItem Header="Terminate proxy" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" /> -->
@@ -41,28 +42,28 @@
                 </Grid>
             </TabItem>
             <TabItem Header="TCP streams">
-                    <ListView x:Name="tcp_stream_view" Height="365" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
-                        <ListView.Resources>
-                            <ContextMenu x:Key="tcp_stream_menu">
+                <ListView x:Name="tcp_stream_view" Height="365" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+                    <ListView.Resources>
+                        <ContextMenu x:Key="tcp_stream_menu">
                             <MenuItem Header="Open TCP stream" Click="OpenTCPStreamButton_Click"  Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
                             <!-- <MenuItem Header="Close connection" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" /> -->
-                            </ContextMenu>
-                        </ListView.Resources>
-                        <ListView.ItemContainerStyle>
-                            <Style TargetType="{x:Type ListViewItem}">
-                                <Setter Property="BorderBrush" Value="LightGray" />
-                                <Setter Property="BorderThickness" Value="0,0,1,1" />
-                                <Setter Property="ContextMenu" Value="{StaticResource tcp_stream_menu}" />
-                            </Style>
-                        </ListView.ItemContainerStyle>
-                    </ListView>
+                        </ContextMenu>
+                    </ListView.Resources>
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="{x:Type ListViewItem}">
+                            <Setter Property="BorderBrush" Value="LightGray" />
+                            <Setter Property="BorderThickness" Value="0,0,1,1" />
+                            <Setter Property="ContextMenu" Value="{StaticResource tcp_stream_menu}" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                </ListView>
             </TabItem>
             <TabItem Header="UDP streams">
                 <ListView x:Name="udp_stream_view" Height="365" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
                     <ListView.Resources>
                         <ContextMenu x:Key="udp_stream_menu">
                             <MenuItem Header="Open UDP stream" Click="OpenUDPStreamButton_Click"  Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" />
-                          <!--  <MenuItem Header="Close connection" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" /> -->
+                            <!--  <MenuItem Header="Close connection" Command="{Binding Path=DataContext.MoreInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListView}}" Background="WhiteSmoke" /> -->
                         </ContextMenu>
                     </ListView.Resources>
                     <ListView.ItemContainerStyle>
