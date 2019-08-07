@@ -315,6 +315,12 @@ namespace chocoGUI
 
         private void SendToRepeater_Click(object sender, RoutedEventArgs e)
         {
+            if (_stream_type != "tcp")
+            {
+                MessageBox.Show("Warning: UDP repeating is not yet supported", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             var packet_display_object = packet_stream_view.SelectedItem;
 
             if ((string)object_helper.get_object_value(packet_display_object, "PayloadLength") == "0")
