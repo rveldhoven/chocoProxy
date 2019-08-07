@@ -37,7 +37,18 @@ typedef int (WSAAPI *tconnect)(
 	int            namelen
 );
 
+typedef int (WSAAPI* tWSAConnect)(
+	SOCKET         s,
+	const sockaddr* name,
+	int            namelen,
+	LPWSABUF       lpCallerData,
+	LPWSABUF       lpCalleeData,
+	LPQOS          lpSQOS,
+	LPQOS          lpGQOS
+	);
+
 tconnect o_connect = nullptr;
+tWSAConnect o_wsaconnect = nullptr;
 
 void connect_home(SOCKET temp_socket, const std::string& ip, const uint16_t port)
 {
@@ -65,7 +76,6 @@ void connect_home(SOCKET temp_socket, const std::string& ip, const uint16_t port
 
 	if (o_connect == nullptr)
 		o_connect = (tconnect)hook_library["connect"]->hook_get_trampoline_end();
-
 
 	if (sin_fam == AF_INET)
 		connect_result = o_connect(temp_socket, (SOCKADDR *)&server_address, sizeof(server_address));
@@ -115,12 +125,10 @@ int WSAAPI hooked_connect(
 	request.socks_port = ((SOCKADDR_IN*)name)->sin_port;
 	request.socks_ip = ((SOCKADDR_IN*)name)->sin_addr.S_un.S_addr;
 
-	uint8_t dummy = 0;
+	std::vector<uint8_t> final_send_command((uint8_t*)& request, (uint8_t*)& request + sizeof(request));
+	final_send_command.push_back(0);
 
-	if (send(s, (const char*)&request, sizeof(request), 0) == SOCKET_ERROR)
-		return SOCKET_ERROR;
-
-	if (send(s, (const char*)&dummy, 1, 0) == SOCKET_ERROR)
+	if (send(s, (const char*) final_send_command.data(), final_send_command.size(), 0) == SOCKET_ERROR)
 		return SOCKET_ERROR;
 
 	SOCKS4Response response = {};
@@ -162,8 +170,6 @@ void set_hook(const std::string& module, const std::string& function, void* to_l
 
 void real_main()
 {
-	MessageBoxA(NULL, "Setting hooks", "Setting hooks", MB_OK);
-
 	try
 	{
 		std::shared_ptr<CopyPatterns> patterns = std::make_shared<CopyPatterns>();

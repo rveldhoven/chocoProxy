@@ -376,18 +376,23 @@ pub fn handle_command_repeat(global_state: &mut globalState, client_stream : &mu
 }
 
 pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalState)
-{
+{	
+	debug_print(file!(), line!(), "Receiving SOCKS request");
+
 	let mut header: [u8; 8] = [0; 8];
 	if let Err(_) = client_stream.read(&mut header)
 	{
 		return;
 	}
 
+	debug_print(file!(), line!(), "Received SOCKS request");
+
 	loop
 	{
 		let mut byte: [u8; 1] = [0; 1];
 		if let Err(_) = client_stream.read(&mut byte)
 		{
+			debug_print(file!(), line!(), "Error reading last SOCKS byte");
 			return;
 		}
 		if byte[0] == 0
@@ -395,6 +400,8 @@ pub fn handle_tcp_client(mut client_stream: TcpStream, mut global_state: globalS
 			break;
 		}
 	}
+
+	debug_print(file!(), line!(), "SOCKS request finished");
 
 	let mut packet_data: [u8; 16192] = [0; 16192];
 
