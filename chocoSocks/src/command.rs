@@ -99,22 +99,32 @@ fn handle_command_client(mut command_stream: TcpStream, mut global_state: global
 			"delete_script" =>
 			{
 				delete_script(command_global_state, command_state.parameters);
+
+				debug_print(file!(), line!(), "Handle delete script command");
 			}
 			"insert_script" =>
 			{
 				insert_script(command_global_state, command_state.parameters);
+
+				debug_print(file!(), line!(), "Handle insert script command");
 			}
 			"repeat_packet" =>
 			{
 				repeat_packet(command_global_state, command_state.parameters);
+
+				debug_print(file!(), line!(), "Handle repeat packet command");
 			}
 			"toggle_intercept" =>
 			{
 				toggle_intercept(command_global_state, command_state.parameters);
+
+				debug_print(file!(), line!(), "Handle local intercept command");
 			}
 			"global_intercept" =>
 			{
 				global_intercept(command_global_state, command_state.parameters);
+
+				debug_print(file!(), line!(), "Handle global intercept command");
 			}
 			_ => println!("Unknown command."),
 		}
