@@ -420,6 +420,25 @@ namespace chocoGUI
 
         private void toggle_intercept_button_Click(object sender, RoutedEventArgs e)
         {
+            if (_is_intercepting == true)
+            {
+                System.Windows.Forms.Integration.WindowsFormsHost host = (WindowsFormsHost)grid1.Children[_child_id];
+
+                Be.Windows.Forms.HexBox my_hex_box = (Be.Windows.Forms.HexBox)host.Child;
+
+                List<byte> send_bytes = new List<byte>();
+
+                for (uint i = 0; i < my_hex_box.ByteProvider.Length; i++)
+                    send_bytes.Add(my_hex_box.ByteProvider.ReadByte(i));
+
+                my_hex_box.ByteProvider = new Be.Windows.Forms.DynamicByteProvider(new List<byte>());
+                my_hex_box.ReadOnly = true;
+
+                ui_send_intercepted_packet(send_bytes);
+
+                selected_packet_status.Content = "NO PACKET (READONLY)";
+            }
+
             _is_intercepting = !_is_intercepting;
 
             intercept_status.Content = "Intercepting: " + (_is_intercepting == true ? "yes" : "no");
