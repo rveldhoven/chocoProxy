@@ -41,7 +41,7 @@ namespace chocoGUI
                 {
                     ScriptName = string_object.Key,
                     ScriptDirection = string_object.Value.direction,
-                    ContentsAbriv = string.Join("", string_object.Value.script.SkipWhile((c) => c != '\n').Take(10)),
+                  //  ContentsAbriv = string.Join("", string_object.Value.script.SkipWhile((c) => c != '\n').Take(10)),
                 };
 
                 if (scripts_view.Items.Contains(script_view_item) == false)
@@ -68,7 +68,7 @@ namespace chocoGUI
 
             gridView.Columns.Add(new GridViewColumn() { Header = "Script name", DisplayMemberBinding = new Binding("ScriptName") });
             gridView.Columns.Add(new GridViewColumn() { Header = "Script direction", DisplayMemberBinding = new Binding("ScriptDirection") });
-            gridView.Columns.Add(new GridViewColumn() { Header = "Script contents...", DisplayMemberBinding = new Binding("ContentsAbriv") });
+            //gridView.Columns.Add(new GridViewColumn() { Header = "Script contents...", DisplayMemberBinding = new Binding("ContentsAbriv") });
 
             scripts_view.View = gridView;
 
