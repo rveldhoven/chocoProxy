@@ -27,6 +27,7 @@ std::map<std::string, std::shared_ptr<cx86PrologueHook>> hook_library;
 
 std::recursive_mutex		connection_list_mutex;
 std::map<SOCKET, SOCKET>	connection_list;
+std::map<SOCKET, bool>		connection_initialized;
 
 void wsa_init()
 {
@@ -89,6 +90,7 @@ SOCKET connect_or_get_home_socket(SOCKET hooked_socket)
 			std::lock_guard<decltype(connection_list_mutex)> lock(connection_list_mutex);
 
 			connection_list[hooked_socket] = new_socket;
+			connection_initialized[hooked_socket] = false;
 		}
 
 		return new_socket;
@@ -99,6 +101,18 @@ SOCKET connect_or_get_home_socket(SOCKET hooked_socket)
 	}
 
 	return INVALID_SOCKET;
+}
+
+void send_only(SOCKET home_socket, const std::vector<uint8_t>& data)
+{
+	std::vector<uint8_t> send_size_buffer;
+
+	uint32_t send_size = data.size();
+
+	send_size_buffer.insert(send_size_buffer.begin(), (uint8_t*)& send_size, (uint8_t*)& send_size + sizeof(send_size));
+
+	send(home_socket, (char*)send_size_buffer.data(), send_size_buffer.size(), 0);
+	send(home_socket, (char*)data.data(), data.size(), 0);
 }
 
 std::vector<uint8_t> send_receive(SOCKET home_socket, const std::vector<uint8_t>& data)
@@ -159,6 +173,28 @@ struct UDPRequest
 };
 #pragma pack(pop)
 
+bool is_state_initialized(SOCKET s)
+{
+	{
+		std::lock_guard<decltype(connection_list_mutex)> lock(connection_list_mutex);
+
+		if (connection_list.find(s) != connection_list.end())
+			return connection_initialized[s];
+	}
+
+	return true;
+}
+
+void set_state_initialized(SOCKET s)
+{
+	{
+		std::lock_guard<decltype(connection_list_mutex)> lock(connection_list_mutex);
+
+		if (connection_list.find(s) != connection_list.end())
+			connection_initialized[s] = true;
+	}
+}
+
 typedef int(WSAAPI* tsendto)(
 	SOCKET         s,
 	const char* buf,
@@ -181,8 +217,40 @@ int WINAPI hooked_sendto(
 {
 	SOCKET home_socket = connect_or_get_home_socket(s);
 
+	if (home_socket == INVALID_SOCKET)
+		return SOCKET_ERROR;
+
 	if (o_send_to == nullptr)
 		o_send_to = (tsendto)hook_library["sendto"]->hook_get_trampoline_end();
+
+	if (is_state_initialized(s) == false)
+	{
+		set_state_initialized(s);
+
+		UDPRequest state_id_update = {};
+		state_id_update.mode = request_mode_write;
+
+		sockaddr_in sin;
+		int addrlen = sizeof(sin);
+
+		if (getsockname(s, (struct sockaddr*) & sin, &addrlen) == 0 && sin.sin_family == AF_INET && addrlen == sizeof(sin))
+		{
+			state_id_update.src_ip = sin.sin_addr.S_un.S_addr;
+			state_id_update.src_port = sin.sin_port;
+		}
+		else
+		{
+			state_id_update.src_ip = -1;
+			state_id_update.src_port = -1;
+		}
+
+		state_id_update.dst_ip = ((SOCKADDR_IN*)to)->sin_addr.S_un.S_addr;
+		state_id_update.dst_port = ((SOCKADDR_IN*)to)->sin_port;
+
+		std::vector<uint8_t> first_send_data((uint8_t*)& state_id_update, (uint8_t*)& state_id_update + sizeof(state_id_update));
+
+		send_only(home_socket, first_send_data);
+	}
 
 	std::vector<uint8_t> first_buffer;
 
@@ -244,11 +312,41 @@ int WINAPI hooked_recvfrom(
 	
 	if (o_recv_from == nullptr)
 		o_recv_from = (trecvfrom)hook_library["recvfrom"]->hook_get_trampoline_end();
-
+	
 	auto result = o_recv_from(s, buf, len, flags, from, fromlen);
 
 	if (result == SOCKET_ERROR)
 		return result;
+
+	if (is_state_initialized(s) == false)
+	{
+		set_state_initialized(s);
+
+		UDPRequest state_id_update = {};
+		state_id_update.mode = request_mode_write;
+
+		sockaddr_in sin;
+		int addrlen = sizeof(sin);
+
+		if (getsockname(s, (struct sockaddr*) & sin, &addrlen) == 0 && sin.sin_family == AF_INET && addrlen == sizeof(sin))
+		{
+			state_id_update.dst_ip = sin.sin_addr.S_un.S_addr;
+			state_id_update.dst_port = sin.sin_port;
+		}
+		else
+		{
+			state_id_update.dst_ip = -1;
+			state_id_update.dst_port = -1;
+		}
+
+		state_id_update.src_ip = ((SOCKADDR_IN*)from)->sin_addr.S_un.S_addr;
+		state_id_update.src_port = ((SOCKADDR_IN*)from)->sin_port;
+
+		std::vector<uint8_t> first_send_data((uint8_t*)& state_id_update, (uint8_t*)& state_id_update + sizeof(state_id_update));
+
+		send_only(home_socket, first_send_data);
+	}
+
 
 	std::vector<uint8_t> first_buffer;
 

@@ -49,7 +49,6 @@ namespace chocoGUI
 
             while(true)
             {
-
                 try
                 {
                     int Port = temp_random.Next(1024, 0xfffe);
@@ -61,7 +60,7 @@ namespace chocoGUI
 
                     cGlobalState.ui_toggle_intercept(_stream_id, "true", connection_string);
 
-                    for(int i = 0; i < 100; i++)
+                    for(int i = 0; i < 30; i++)
                     {
                         if (temp_listener.Pending() == false)
                         {
@@ -76,6 +75,15 @@ namespace chocoGUI
                         return temp_stream;
 
                     }
+
+                    MessageBox.Show("Error: client proxy did not return in time, this could indicate the connection that is being intercepted has closed", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                    _is_intercepting = false;
+
+                    cGlobalState.ui_toggle_intercept(_stream_id, "false", "127.0.0.1:1231");
+                    intercept_status.Content = "Intercepting: " + (_is_intercepting == true ? "yes" : "no");
+
+                    return new TcpClient();
                 }
                 catch(Exception e)
                 {

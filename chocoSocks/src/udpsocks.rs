@@ -84,11 +84,13 @@ fn receive_packet_from_client(client_stream: &mut TcpStream) -> std::result::Res
 	let mut bytes_receive_size: [u8; 4] = [0; 4];
 	if let Err(_) = client_stream.read(&mut bytes_receive_size)
 	{
+		/*
 		error_and_continue(
 			file!(),
 			line!(),
 			"Failed to receive intercepted packet length.",
 		);
+		*/
 		return Err(());
 	}
 
@@ -295,7 +297,8 @@ fn handle_relay_tick_nointercept(global_state: &mut globalState, client_stream :
 
 	if packet_bytes.len() < 13
 	{
-		error_and_continue(file!(), line!(), "Invalid request received from DLL");
+		//debug_print(file!(), line!(), "Invalid request received from DLL");
+		//error_and_continue(file!(), line!(), "Invalid request received from DLL");
 		return Ok(());
 	}
 
@@ -389,6 +392,36 @@ pub fn handle_udp_client(mut client_stream: TcpStream, mut global_state: globalS
 	let header_data = unsafe { any_as_u8_slice(&global_header) };
 	file.write(header_data);
 
+	let mut packet_bytes = match receive_packet_from_client(&mut client_stream)
+	{
+		Ok(v) => v,
+		_ => Vec::new(),
+	};
+
+	if packet_bytes.len() < 13
+	{
+		error_and_continue(file!(), line!(), "Error: illigal stream ID received from DLL");
+		return;
+	}
+
+	//println!("Received: {} bytes", packet_bytes.len());
+
+	let mut faked_request_struct = UDPRequest::create_from_bytes(&packet_bytes[0..13]);
+
+	let fake_dest_ip = Ipv4Addr::new(
+		packet_bytes[1],
+		packet_bytes[2],
+		packet_bytes[3],
+		packet_bytes[4],
+	);
+
+	let fake_src_ip = Ipv4Addr::new(
+		packet_bytes[7],
+		packet_bytes[8],
+		packet_bytes[9],
+		packet_bytes[10],
+	);
+
 	client_stream
 		.set_nonblocking(true)
 		.expect("set_nonblocking call failed.");
@@ -402,10 +435,10 @@ pub fn handle_udp_client(mut client_stream: TcpStream, mut global_state: globalS
 		.to_string();
 
 	let state_data = udpStreamState::new(
-		"not applicable".to_string(),
-		"not applicable".to_string(),
-		"not applicable".to_string(),
-		"not applicable".to_string(),
+		fake_dest_ip.to_string(),
+		faked_request_struct.dst_port.to_string(),
+		fake_src_ip.to_string(),
+		faked_request_struct.src_port.to_string(),
 		"random_pid".to_string(),
 		"random_process_name".to_string(),
 		filename,
