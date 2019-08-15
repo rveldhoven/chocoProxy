@@ -8,7 +8,7 @@ chocoProxy is still in beta, and many features are still in active development. 
 
 # Requirements
 
-You need the following tools installed on a Windows 10 machine:
+You need the following installed on a Windows 10 machine:
   - Python 3.6+ 64bit
   - .Net 4.7.1
 
