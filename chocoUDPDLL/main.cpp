@@ -29,6 +29,13 @@ std::recursive_mutex		connection_list_mutex;
 std::map<SOCKET, SOCKET>	connection_list;
 std::map<SOCKET, bool>		connection_initialized_list;
 
+void debug_warning(const std::string& message)
+{
+	std::string complete_warning = "Warning: " + message;
+
+	MessageBoxA(NULL, complete_warning.c_str(), "Warning", MB_OK | MB_ICONWARNING);
+}
+
 void wsa_init()
 {
 	WSADATA wsa_data = {};
@@ -177,8 +184,11 @@ std::vector<uint8_t> receive_only(SOCKET s)
 	{
 		size_t chunk_read_size = recv(s, (char*)chunk_buffer[0], chunk_size, 0);
 
+		if (chunk_read_size == SOCKET_ERROR)
+			throw std::runtime_error("Error: could not read chunk from socket: " + std::to_string(WSAGetLastError()));
+
 		if (chunk_read_size != chunk_size)
-			throw std::runtime_error("Error: could not read message chunk from socket");
+			throw std::runtime_error("Error: could not read chunk from socket");
 
 		message_bytes_buffer.insert(message_bytes_buffer.end(), &chunk_buffer[0], &chunk_buffer[0] + chunk_size);
 	}
@@ -187,8 +197,11 @@ std::vector<uint8_t> receive_only(SOCKET s)
 	{
 		size_t last_read_size = recv(s, (char*)chunk_buffer[0], last_read, 0);
 
+		if (last_read_size == SOCKET_ERROR)
+			throw std::runtime_error("Error: could not read last chunk from socket: " + std::to_string(WSAGetLastError()));
+
 		if (last_read_size != last_read)
-			throw std::runtime_error("Error: could not read message chunk from socket");
+			throw std::runtime_error("Error: could not read last chunk from socket: " + std::to_string(last_read_size) + " != " + std::to_string(last_read));
 
 		message_bytes_buffer.insert(message_bytes_buffer.end(), &chunk_buffer[0], &chunk_buffer[0] + last_read);
 	}
@@ -304,7 +317,8 @@ int WINAPI hooked_sendto(
 		}
 		catch (std::exception e)
 		{
-			close_home_socket(home_socket);
+			debug_warning(e.what());
+			close_home_socket(s);
 		}
 	}
 
@@ -343,7 +357,8 @@ int WINAPI hooked_sendto(
 	}
 	catch (std::exception e)
 	{
-		close_home_socket(home_socket);
+		debug_warning(e.what());
+		close_home_socket(s);
 	}
 
 	int sendto_result = 0;
@@ -355,7 +370,8 @@ int WINAPI hooked_sendto(
 
 	if (sendto_result == SOCKET_ERROR)
 	{
-		close_home_socket(home_socket);
+		debug_warning("Sendto reported error");
+		close_home_socket(s);
 	}
 
 	return sendto_result;
@@ -390,7 +406,9 @@ int WINAPI hooked_recvfrom(
 
 	if (result == SOCKET_ERROR)
 	{
-		close_home_socket(home_socket);
+		debug_warning("Recvfrom reported error");
+
+		close_home_socket(s);
 
 		return result;
 	}
@@ -427,7 +445,8 @@ int WINAPI hooked_recvfrom(
 		}
 		catch (std::exception e)
 		{
-			close_home_socket(home_socket);
+			debug_warning(e.what());
+			close_home_socket(s);
 		}
 	}
 
@@ -467,7 +486,8 @@ int WINAPI hooked_recvfrom(
 	}
 	catch (std::exception e)
 	{
-		close_home_socket(home_socket);
+		debug_warning(e.what());
+		close_home_socket(s);
 	}
 
 	if (second_buffer.size() > len)

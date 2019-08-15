@@ -34,7 +34,7 @@ pub fn error_and_continue(file: &str, line: u32, message: &str)
 
 pub fn debug_print(file: &str, line: u32, message: &str)
 {
-	#[cfg(debug_assertions)]
+	//#[cfg(debug_assertions)]
 	println!(
 		"{}",
 		"Info in: ".to_string()
