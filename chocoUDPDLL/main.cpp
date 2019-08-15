@@ -27,7 +27,7 @@ std::map<std::string, std::shared_ptr<cx86PrologueHook>> hook_library;
 
 std::recursive_mutex		connection_list_mutex;
 std::map<SOCKET, SOCKET>	connection_list;
-std::map<SOCKET, bool>		connection_initialized;
+std::map<SOCKET, bool>		connection_initialized_list;
 
 void wsa_init()
 {
@@ -35,7 +35,7 @@ void wsa_init()
 	WSAStartup(MAKEWORD(2, 2), &wsa_data);
 }
 
-void connect_home(SOCKET temp_socket, const std::string& ip, const uint16_t port)
+void connect_home_socket(SOCKET temp_socket, const std::string& ip, const uint16_t port)
 {
 	ADDRESS_FAMILY sin_fam = AF_INET;
 
@@ -84,13 +84,13 @@ SOCKET connect_or_get_home_socket(SOCKET hooked_socket)
 
 	try
 	{
-		connect_home(new_socket, home_ip, strtol(home_port, nullptr, 10));
+		connect_home_socket(new_socket, home_ip, strtol(home_port, nullptr, 10));
 
 		{
 			std::lock_guard<decltype(connection_list_mutex)> lock(connection_list_mutex);
 
 			connection_list[hooked_socket] = new_socket;
-			connection_initialized[hooked_socket] = false;
+			connection_initialized_list[hooked_socket] = false;
 		}
 
 		return new_socket;
@@ -103,16 +103,97 @@ SOCKET connect_or_get_home_socket(SOCKET hooked_socket)
 	return INVALID_SOCKET;
 }
 
-void send_only(SOCKET home_socket, const std::vector<uint8_t>& data)
+void close_home_socket(SOCKET hooked_socket)
 {
-	std::vector<uint8_t> send_size_buffer;
+	std::lock_guard<decltype(connection_list_mutex)> lock(connection_list_mutex);
 
+	auto connection_list_it = connection_list.find(hooked_socket);
+	auto connection_initialized_it = connection_initialized_list.find(hooked_socket);
+
+	if (connection_list_it == connection_list.end())
+		return;
+
+	SOCKET closing_socket = connection_list_it->second;
+
+	closesocket(closing_socket);
+
+	connection_list.erase(hooked_socket);
+
+	if (connection_initialized_it == connection_initialized_list.end())
+		return;
+	
+	connection_initialized_list.erase(hooked_socket);
+}
+
+void send_only(SOCKET s, const std::vector<uint8_t>& data)
+{
+	std::vector<uint8_t> send_buffer = data;
 	uint32_t send_size = data.size();
 
-	send_size_buffer.insert(send_size_buffer.begin(), (uint8_t*)& send_size, (uint8_t*)& send_size + sizeof(send_size));
+	send_buffer.insert(send_buffer.begin(), (uint8_t*)& send_size, (uint8_t*)& send_size + sizeof(send_size));
 
-	send(home_socket, (char*)send_size_buffer.data(), send_size_buffer.size(), 0);
-	send(home_socket, (char*)data.data(), data.size(), 0);
+	if (send(s, (char*)send_buffer.data(), send_buffer.size(), 0) == SOCKET_ERROR)
+		throw std::runtime_error("Error: socket closed");
+}
+
+size_t get_bytes_available(SOCKET s)
+{
+	u_long result = 0;
+
+	if (ioctlsocket(s, FIONREAD, &result) == SOCKET_ERROR)
+		throw std::runtime_error("Error: FIONREAD call failed");
+
+	return result;
+}
+
+std::vector<uint8_t> receive_only(SOCKET s)
+{
+	std::vector<uint8_t> message_size_buffer;
+	std::vector<uint8_t> message_bytes_buffer;
+
+	message_size_buffer.resize(sizeof(uint32_t));
+
+	size_t bytes_peeked = recv(s, (char*)message_size_buffer.data(), message_size_buffer.size(), MSG_PEEK);
+
+	if (bytes_peeked != 4)
+		throw std::runtime_error("Error: could not peek message size from socket");
+
+	size_t bytes_read = recv(s, (char*)message_size_buffer.data(), message_size_buffer.size(), 0);
+
+	if (bytes_read != bytes_peeked)
+		throw std::runtime_error("Error: could not read message size from socket");
+
+	uint32_t message_size = *(uint32_t*)message_size_buffer.data();
+
+	message_bytes_buffer.reserve(message_size);
+
+	const size_t chunk_size = 8096;
+
+	char chunk_buffer[chunk_size] = {};
+	size_t num_reads = message_size / chunk_size;
+	size_t last_read = message_size % chunk_size;
+
+	for (size_t i = 0; i < num_reads; i++)
+	{
+		size_t chunk_read_size = recv(s, (char*)chunk_buffer[0], chunk_size, 0);
+
+		if (chunk_read_size != chunk_size)
+			throw std::runtime_error("Error: could not read message chunk from socket");
+
+		message_bytes_buffer.insert(message_bytes_buffer.end(), &chunk_buffer[0], &chunk_buffer[0] + chunk_size);
+	}
+
+	if (last_read > 0)
+	{
+		size_t last_read_size = recv(s, (char*)chunk_buffer[0], last_read, 0);
+
+		if (last_read_size != last_read)
+			throw std::runtime_error("Error: could not read message chunk from socket");
+
+		message_bytes_buffer.insert(message_bytes_buffer.end(), &chunk_buffer[0], &chunk_buffer[0] + last_read);
+	}
+
+	return message_bytes_buffer;
 }
 
 std::vector<uint8_t> send_receive(SOCKET home_socket, const std::vector<uint8_t>& data)
@@ -120,43 +201,11 @@ std::vector<uint8_t> send_receive(SOCKET home_socket, const std::vector<uint8_t>
 	if (data.size() == 0)
 		return std::vector<uint8_t>();
 	
-	std::vector<uint8_t> send_size_buffer;
+	send_only(home_socket, data);
 
-	uint32_t send_size = data.size();
-
-	send_size_buffer.insert(send_size_buffer.begin(), (uint8_t*)& send_size, (uint8_t*)& send_size + sizeof(send_size));
-
-	send(home_socket, (char*)send_size_buffer.data(), send_size_buffer.size(), 0);
-	send(home_socket, (char*)data.data(), data.size(), 0);
-
-	bool is_done = true;
-	std::vector<uint8_t> recv_size_buffer;
-	std::vector<uint8_t> recv_buffer;
-
-	do
-	{
-		recv_buffer.clear();
-		recv_size_buffer.clear();
-
-		is_done = true;
-
-		recv_size_buffer.resize(sizeof(uint32_t));
-
-		recv(home_socket, (char*)recv_size_buffer.data(), recv_size_buffer.size(), 0);
-
-		uint32_t recv_size = *(uint32_t*)recv_size_buffer.data();
-
-		if (recv_size == 0xffffffff)
-		{
-			is_done = false;
-			continue;
-		}
-
-		recv_buffer.resize(recv_size);
-		recv(home_socket, (char*)recv_buffer.data(), recv_buffer.size(), 0);
-	} while (is_done == false);
-
-	return recv_buffer;
+	std::vector<uint8_t> result = receive_only(home_socket);
+	
+	return result;
 }
 
 #define request_mode_write 1
@@ -179,7 +228,7 @@ bool is_state_initialized(SOCKET s)
 		std::lock_guard<decltype(connection_list_mutex)> lock(connection_list_mutex);
 
 		if (connection_list.find(s) != connection_list.end())
-			return connection_initialized[s];
+			return connection_initialized_list[s];
 	}
 
 	return true;
@@ -191,7 +240,7 @@ void set_state_initialized(SOCKET s)
 		std::lock_guard<decltype(connection_list_mutex)> lock(connection_list_mutex);
 
 		if (connection_list.find(s) != connection_list.end())
-			connection_initialized[s] = true;
+			connection_initialized_list[s] = true;
 	}
 }
 
@@ -249,7 +298,14 @@ int WINAPI hooked_sendto(
 
 		std::vector<uint8_t> first_send_data((uint8_t*)& state_id_update, (uint8_t*)& state_id_update + sizeof(state_id_update));
 
-		send_only(home_socket, first_send_data);
+		try
+		{
+			send_only(home_socket, first_send_data);
+		}
+		catch (std::exception e)
+		{
+			close_home_socket(home_socket);
+		}
 	}
 
 	std::vector<uint8_t> first_buffer;
@@ -275,17 +331,34 @@ int WINAPI hooked_sendto(
 		request.src_port = -1;
 	}
 
-
 	request.dst_ip = ((SOCKADDR_IN*)to)->sin_addr.S_un.S_addr;
 	request.dst_port = ((SOCKADDR_IN*)to)->sin_port;
 	first_buffer.insert(first_buffer.begin(), (uint8_t*)& request, (uint8_t*)& request + sizeof(request));
 
-	std::vector<uint8_t> second_buffer = send_receive(home_socket, first_buffer);
+	std::vector<uint8_t> second_buffer;
 
+	try
+	{
+		second_buffer = send_receive(home_socket, first_buffer);
+	}
+	catch (std::exception e)
+	{
+		close_home_socket(home_socket);
+	}
+
+	int sendto_result = 0;
+	
 	if (second_buffer.size() > 0)
-		return o_send_to(s, (char*)second_buffer.data(), second_buffer.size(), flags, to, tolen);
+		sendto_result = o_send_to(s, (char*)second_buffer.data(), second_buffer.size(), flags, to, tolen);
 	else
-		return o_send_to(s, buf, len, flags, to, tolen);
+		sendto_result = o_send_to(s, buf, len, flags, to, tolen);
+
+	if (sendto_result == SOCKET_ERROR)
+	{
+		close_home_socket(home_socket);
+	}
+
+	return sendto_result;
 }
 
 typedef int(WSAAPI* trecvfrom)(
@@ -316,7 +389,11 @@ int WINAPI hooked_recvfrom(
 	auto result = o_recv_from(s, buf, len, flags, from, fromlen);
 
 	if (result == SOCKET_ERROR)
+	{
+		close_home_socket(home_socket);
+
 		return result;
+	}
 
 	if (is_state_initialized(s) == false)
 	{
@@ -344,9 +421,15 @@ int WINAPI hooked_recvfrom(
 
 		std::vector<uint8_t> first_send_data((uint8_t*)& state_id_update, (uint8_t*)& state_id_update + sizeof(state_id_update));
 
-		send_only(home_socket, first_send_data);
+		try
+		{
+			send_only(home_socket, first_send_data);
+		}
+		catch (std::exception e)
+		{
+			close_home_socket(home_socket);
+		}
 	}
-
 
 	std::vector<uint8_t> first_buffer;
 
@@ -370,14 +453,22 @@ int WINAPI hooked_recvfrom(
 		request.dst_ip = -1;
 		request.dst_ip = -1;
 	}
-
-
+	
 	request.src_ip = ((SOCKADDR_IN*)from)->sin_addr.S_un.S_addr;
 	request.src_port = ((SOCKADDR_IN*)from)->sin_port;
 
 	first_buffer.insert(first_buffer.begin(), (uint8_t*)& request, (uint8_t*)& request + sizeof(request));
 
-	std::vector<uint8_t> second_buffer = send_receive(home_socket, first_buffer);
+	std::vector<uint8_t> second_buffer;
+
+	try
+	{
+		second_buffer = send_receive(home_socket, first_buffer);
+	}
+	catch (std::exception e)
+	{
+		close_home_socket(home_socket);
+	}
 
 	if (second_buffer.size() > len)
 	{
@@ -445,7 +536,7 @@ void real_main()
 	}
 	catch (std::exception e)
 	{
-		MessageBoxA(NULL, e.what(), "Error", MB_OK);
+		MessageBoxA(NULL, e.what(), "Error", MB_OK | MB_ICONERROR);
 	}
 }
 

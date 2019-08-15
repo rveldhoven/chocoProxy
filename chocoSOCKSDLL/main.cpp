@@ -25,12 +25,6 @@ std::shared_ptr<cx86HookManager> hook_manager = nullptr;
 std::map<std::string, std::shared_ptr<cx86PrologueHook>> hook_library;
 #endif
 
-void wsa_init()
-{
-	WSADATA wsa_data = {};
-	WSAStartup(MAKEWORD(2, 2), &wsa_data);
-}
-
 typedef int (WSAAPI *tconnect)(
 	SOCKET         s,
 	const sockaddr *name,
@@ -50,7 +44,13 @@ typedef int (WSAAPI* tWSAConnect)(
 tconnect o_connect = nullptr;
 tWSAConnect o_wsaconnect = nullptr;
 
-void connect_home(SOCKET temp_socket, const std::string& ip, const uint16_t port)
+void wsa_init()
+{
+	WSADATA wsa_data = {};
+	WSAStartup(MAKEWORD(2, 2), &wsa_data);
+}
+
+void connect_home_socket(SOCKET temp_socket, const std::string& ip, const uint16_t port)
 {
 	ADDRESS_FAMILY sin_fam = AF_INET;
 
@@ -112,7 +112,7 @@ int WSAAPI hooked_connect(
 {
 	try
 	{
-		connect_home(s, home_ip, strtol(home_port, nullptr, 10));
+		connect_home_socket(s, home_ip, strtol(home_port, nullptr, 10));
 	}
 	catch (...)
 	{
