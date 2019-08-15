@@ -82,15 +82,26 @@ impl UDPRequest
 fn receive_packet_from_client(client_stream: &mut TcpStream) -> std::result::Result<Vec<u8>, ()>
 {
 	let mut bytes_receive_size: [u8; 4] = [0; 4];
-	if let Err(_) = client_stream.read(&mut bytes_receive_size)
+
+	let num_bytes_peeked = match client_stream.peek(&mut bytes_receive_size)
 	{
-		/*
-		error_and_continue(
-			file!(),
-			line!(),
-			"Failed to receive intercepted packet length.",
-		);
-		*/
+		Ok(v) => v,
+		_ => return Err(()),
+	};
+
+	if num_bytes_peeked != 4 
+	{
+		return Err(());
+	}
+
+	let num_bytes_read = match client_stream.read(&mut bytes_receive_size)
+	{
+		Ok(v) => v,
+		_ => return Err(()),
+	};
+
+	if num_bytes_read != 4 
+	{
 		return Err(());
 	}
 
@@ -103,8 +114,6 @@ fn receive_packet_from_client(client_stream: &mut TcpStream) -> std::result::Res
 		])
 	}
 	.to_le();
-
-	//println!("UDP socks: receiving: {} bytes", intercept_amount);
 
 	let mut result_bytes: Vec<u8> = vec![0; intercept_amount as usize];
 
@@ -145,7 +154,7 @@ fn echo_send_and_receive_packet(echo_tcpstream: &mut TcpStream, packet_bytes: Ve
 
 	echo_tcpstream.write(&packet_bytes).unwrap();
 
-	if let Err(_) = echo_tcpstream.read(&mut received_bytes)
+	if let Err(_) = echo_tcpstream.read_exact(&mut received_bytes)
 	{
 		error_and_exit(
 			file!(),
@@ -218,8 +227,6 @@ fn handle_relay_tick_intercept(global_state: &mut globalState, client_stream : &
 {
 	let mut packet_data: [u8; 16192] = [0; 16192];
 
-	//debug_print(file!(), line!(), "Intercept: reading client stream");
-
 	let mut packet_bytes = match receive_packet_from_client(client_stream)
 	{
 		Ok(v) => v,
@@ -228,11 +235,8 @@ fn handle_relay_tick_intercept(global_state: &mut globalState, client_stream : &
 
 	if packet_bytes.len() < 13
 	{
-		//error_and_continue(file!(), line!(), "Invalid request received from DLL");
 		return Ok(());
 	}
-
-	//debug_print(file!(), line!(), "Intercept: isolating header");
 
 	let mut request_struct = UDPRequest::create_from_bytes(&packet_bytes[0..13]);
 
@@ -252,19 +256,13 @@ fn handle_relay_tick_intercept(global_state: &mut globalState, client_stream : &
 
 	packet_bytes = packet_bytes[13..].to_vec();
 
-	//debug_print(file!(), line!(), "Intercept: parsed header");
-
 	let str_dest_ip = dest_ip.to_string();
 	let str_dest_port = request_struct.dst_port.to_string();
 
 	let src_ip = src_ip.to_string();
 	let src_port = request_struct.dst_port.to_string();
 
-	//debug_print(file!(), line!(), "Intercept: Echoing packet");
-
 	packet_bytes = echo_send_and_receive_packet(echo_stream, packet_bytes);
-
-	//debug_print(file!(), line!(), "Intercept: Echoed packet");
 
 	if request_struct.request_mode == REQUEST_MODE_WRITE
 	{
@@ -286,9 +284,7 @@ fn handle_relay_tick_intercept(global_state: &mut globalState, client_stream : &
 fn handle_relay_tick_nointercept(global_state: &mut globalState, client_stream : &mut TcpStream, state_id: &String, pcap_file : &mut File) -> std::result::Result<(),()>
 {	
 	let mut packet_data: [u8; 16192] = [0; 16192];
-
-	debug_print(file!(), line!(), "Reading client dll packet");
-
+	
 	let mut packet_bytes = match receive_packet_from_client(client_stream)
 	{
 		Ok(v) => v,
@@ -297,12 +293,8 @@ fn handle_relay_tick_nointercept(global_state: &mut globalState, client_stream :
 
 	if packet_bytes.len() < 13
 	{
-		//debug_print(file!(), line!(), "Invalid request received from DLL");
-		//error_and_continue(file!(), line!(), "Invalid request received from DLL");
 		return Ok(());
 	}
-
-	//println!("Received: {} bytes", packet_bytes.len());
 
 	let mut request_struct = UDPRequest::create_from_bytes(&packet_bytes[0..13]);
 
